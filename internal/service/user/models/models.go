@@ -1,1 +1,63 @@
 package models
+
+import "time"
+
+// User DTOs
+
+type CreateUserInputDTO struct {
+	TGUserID    int64   `json:"tg_user_id" validate:"required"`
+	Name        string  `json:"name" validate:"required"`
+	PhoneNumber string  `json:"phone_number" validate:"required,e164"`
+	TGLink      *string `json:"tg_link"`
+}
+
+type UpdateUserInputDTO struct {
+	Name        string  `json:"name" validate:"required"`
+	PhoneNumber string  `json:"phone_number" validate:"required,e164"`
+	TGLink      *string `json:"tg_link"`
+}
+
+type UserDTO struct {
+	TGUserID    int64     `json:"tg_user_id"`
+	Name        string    `json:"name"`
+	PhoneNumber string    `json:"phone_number"`
+	TGLink      *string   `json:"tg_link,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+type UserWithCarsDTO struct {
+	TGUserID    int64     `json:"tg_user_id"`
+	Name        string    `json:"name"`
+	PhoneNumber string    `json:"phone_number"`
+	TGLink      *string   `json:"tg_link,omitempty"`
+	CreatedAt   time.Time `json:"created_at"`
+	Cars        []CarDTO  `json:"cars"`
+}
+
+// Car DTOs
+
+type CreateCarInputDTO struct {
+	Brand        string  `json:"brand" validate:"required"`
+	Model        string  `json:"model" validate:"required"`
+	LicensePlate string  `json:"license_plate" validate:"required"`
+	Color        *string `json:"color"`
+	Size         *string `json:"size"`
+}
+
+type UpdateCarInputDTO struct {
+	Brand        *string `json:"brand"`
+	Model        *string `json:"model"`
+	LicensePlate *string `json:"license_plate"`
+	Color        *string `json:"color"`
+	Size         *string `json:"size"`
+}
+
+type CarDTO struct {
+	ID           string  `json:"id"`
+	UserID       int64   `json:"user_id"`
+	Brand        string  `json:"brand"`
+	Model        string  `json:"model"`
+	LicensePlate string  `json:"license_plate"`
+	Color        *string `json:"color,omitempty"`
+	Size         *string `json:"size,omitempty"`
+}

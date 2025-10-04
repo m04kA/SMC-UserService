@@ -1,1 +1,273 @@
 package user
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"time"
+
+	"github.com/m04kA/SMK-UserService/internal/domain"
+	"github.com/m04kA/SMK-UserService/internal/service/user/models"
+)
+
+var (
+	ErrServiceCreateUser = errors.New("service: failed to create user")
+	ErrServiceGetUser    = errors.New("service: failed to get user")
+	ErrServiceUpdateUser = errors.New("service: failed to update user")
+	ErrServiceDeleteUser = errors.New("service: failed to delete user")
+	ErrServiceCreateCar  = errors.New("service: failed to create car")
+	ErrServiceGetCar     = errors.New("service: failed to get car")
+	ErrServiceUpdateCar  = errors.New("service: failed to update car")
+	ErrServiceDeleteCar  = errors.New("service: failed to delete car")
+)
+
+type Service struct {
+	userRepo UserRepository
+	carRepo  CarRepository
+}
+
+func NewUserService(ur UserRepository, cr CarRepository) *Service {
+	return &Service{userRepo: ur, carRepo: cr}
+}
+
+// CreateUser создает нового пользователя
+func (s *Service) CreateUser(ctx context.Context, input models.CreateUserInputDTO) (*models.UserDTO, error) {
+	_, err := s.userRepo.GetByTGID(ctx, input.TGUserID)
+	if err == nil {
+		return nil, ErrUserAlreadyExists
+	}
+	if !errors.Is(err, ErrUserNotFound) {
+		return nil, fmt.Errorf("%w: %v", ErrServiceGetUser, err)
+	}
+
+	user := &domain.User{
+		TGUserID:    input.TGUserID,
+		Name:        input.Name,
+		PhoneNumber: input.PhoneNumber,
+		TGLink:      input.TGLink,
+		CreatedAt:   time.Now(),
+	}
+
+	if err = s.userRepo.Create(ctx, user); err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrServiceCreateUser, err)
+	}
+
+	response := &models.UserDTO{
+		TGUserID:    user.TGUserID,
+		Name:        user.Name,
+		PhoneNumber: user.PhoneNumber,
+		TGLink:      user.TGLink,
+		CreatedAt:   user.CreatedAt,
+	}
+
+	return response, nil
+}
+
+// UpdateUser обновляет данные пользователя
+func (s *Service) UpdateUser(ctx context.Context, tgID int64, input models.UpdateUserInputDTO) (*models.UserDTO, error) {
+	user, err := s.userRepo.GetByTGID(ctx, tgID)
+	if err != nil {
+		if errors.Is(err, ErrUserNotFound) {
+			return nil, err
+		}
+		return nil, fmt.Errorf("%w: %v", ErrServiceGetUser, err)
+	}
+
+	user.Name = input.Name
+	user.PhoneNumber = input.PhoneNumber
+	user.TGLink = input.TGLink
+
+	if err = s.userRepo.Update(ctx, user); err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrServiceUpdateUser, err)
+	}
+
+	response := &models.UserDTO{
+		TGUserID:    user.TGUserID,
+		Name:        user.Name,
+		PhoneNumber: user.PhoneNumber,
+		TGLink:      user.TGLink,
+		CreatedAt:   user.CreatedAt,
+	}
+
+	return response, nil
+}
+
+// DeleteUser удаляет пользователя
+func (s *Service) DeleteUser(ctx context.Context, tgID int64) error {
+	err := s.userRepo.Delete(ctx, tgID)
+	if err != nil {
+		if errors.Is(err, ErrUserNotFound) {
+			return err
+		}
+		return fmt.Errorf("%w: %v", ErrServiceDeleteUser, err)
+	}
+	return nil
+}
+
+// GetUserByID получает пользователя по ID
+func (s *Service) GetUserByID(ctx context.Context, tgID int64) (*models.UserDTO, error) {
+	user, err := s.userRepo.GetByTGID(ctx, tgID)
+	if err != nil {
+		if errors.Is(err, ErrUserNotFound) {
+			return nil, err
+		}
+		return nil, fmt.Errorf("%w: %v", ErrServiceGetUser, err)
+	}
+
+	response := &models.UserDTO{
+		TGUserID:    user.TGUserID,
+		Name:        user.Name,
+		PhoneNumber: user.PhoneNumber,
+		TGLink:      user.TGLink,
+		CreatedAt:   user.CreatedAt,
+	}
+
+	return response, nil
+}
+
+// GetUserWithCars получает пользователя со всеми его автомобилями
+func (s *Service) GetUserWithCars(ctx context.Context, tgID int64) (*models.UserWithCarsDTO, error) {
+	user, err := s.userRepo.GetByTGID(ctx, tgID)
+	if err != nil {
+		if errors.Is(err, ErrUserNotFound) {
+			return nil, err
+		}
+		return nil, fmt.Errorf("%w: %v", ErrServiceGetUser, err)
+	}
+
+	cars, err := s.carRepo.GetByUserID(ctx, tgID)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrServiceGetCar, err)
+	}
+
+	carDTOs := make([]models.CarDTO, 0, len(cars))
+	for _, car := range cars {
+		carDTOs = append(carDTOs, models.CarDTO{
+			ID:           car.ID,
+			UserID:       car.UserID,
+			Brand:        car.Brand,
+			Model:        car.Model,
+			LicensePlate: car.LicensePlate,
+			Color:        car.Color,
+			Size:         car.Size,
+		})
+	}
+
+	response := &models.UserWithCarsDTO{
+		TGUserID:    user.TGUserID,
+		Name:        user.Name,
+		PhoneNumber: user.PhoneNumber,
+		TGLink:      user.TGLink,
+		CreatedAt:   user.CreatedAt,
+		Cars:        carDTOs,
+	}
+
+	return response, nil
+}
+
+// CreateCar создает новый автомобиль
+func (s *Service) CreateCar(ctx context.Context, tgID int64, input models.CreateCarInputDTO) (*models.CarDTO, error) {
+	_, err := s.userRepo.GetByTGID(ctx, tgID)
+	if err != nil {
+		if errors.Is(err, ErrUserNotFound) {
+			return nil, err
+		}
+		return nil, fmt.Errorf("%w: %v", ErrServiceGetUser, err)
+	}
+
+	car := &domain.Car{
+		UserID:       tgID,
+		Brand:        input.Brand,
+		Model:        input.Model,
+		LicensePlate: input.LicensePlate,
+		Color:        input.Color,
+		Size:         input.Size,
+	}
+
+	createdCar, err := s.carRepo.Create(ctx, car)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrServiceCreateCar, err)
+	}
+
+	response := &models.CarDTO{
+		ID:           createdCar.ID,
+		UserID:       createdCar.UserID,
+		Brand:        createdCar.Brand,
+		Model:        createdCar.Model,
+		LicensePlate: createdCar.LicensePlate,
+		Color:        createdCar.Color,
+		Size:         createdCar.Size,
+	}
+
+	return response, nil
+}
+
+// UpdateCar обновляет автомобиль (PATCH)
+func (s *Service) UpdateCar(ctx context.Context, tgID int64, carID string, input models.UpdateCarInputDTO) (*models.CarDTO, error) {
+	car, err := s.carRepo.GetByID(ctx, carID)
+	if err != nil {
+		if errors.Is(err, ErrCarNotFound) {
+			return nil, err
+		}
+		return nil, fmt.Errorf("%w: %v", ErrServiceGetCar, err)
+	}
+
+	if car.UserID != tgID {
+		return nil, ErrCarAccessDenied
+	}
+
+	if input.Brand != nil {
+		car.Brand = *input.Brand
+	}
+	if input.Model != nil {
+		car.Model = *input.Model
+	}
+	if input.LicensePlate != nil {
+		car.LicensePlate = *input.LicensePlate
+	}
+	if input.Color != nil {
+		car.Color = input.Color
+	}
+	if input.Size != nil {
+		car.Size = input.Size
+	}
+
+	err = s.carRepo.Update(ctx, car)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrServiceUpdateCar, err)
+	}
+
+	response := &models.CarDTO{
+		ID:           car.ID,
+		UserID:       car.UserID,
+		Brand:        car.Brand,
+		Model:        car.Model,
+		LicensePlate: car.LicensePlate,
+		Color:        car.Color,
+		Size:         car.Size,
+	}
+
+	return response, nil
+}
+
+// DeleteCar удаляет автомобиль
+func (s *Service) DeleteCar(ctx context.Context, tgID int64, carID string) error {
+	car, err := s.carRepo.GetByID(ctx, carID)
+	if err != nil {
+		if errors.Is(err, ErrCarNotFound) {
+			return err
+		}
+		return fmt.Errorf("%w: %v", ErrServiceGetCar, err)
+	}
+
+	if car.UserID != tgID {
+		return ErrCarAccessDenied
+	}
+
+	err = s.carRepo.Delete(ctx, carID)
+	if err != nil {
+		return fmt.Errorf("%w: %v", ErrServiceDeleteCar, err)
+	}
+
+	return nil
+}

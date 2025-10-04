@@ -1,9 +1,345 @@
 openapi: 3.1.0
 info:
-  title: $Title$
-  description: $Title$
-  version: 1.0.0
+  title: "UserService API"
+  description: "API для управления пользователями и их автомобилями в приложении для автомойки."
+  version: "1.0.0"
 servers:
-  - url: '$https$'
+  - url: https://api.carwash.app/v1
+    description: Production Server
+
 paths:
-  $END$
+  /users:
+    post:
+      tags: [Users]
+      summary: "Создание нового пользователя"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewUserInput'
+      responses:
+        '201':
+          description: "Пользователь успешно создан."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: "Некорректные данные в запросе (например, неверный формат телефона)."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: "Пользователь с таким `tg_user_id` уже существует."
+
+  /users/me:
+    get:
+      tags: [Users]
+      summary: "Получение данных текущего пользователя"
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: "Успешный ответ с данными пользователя."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserWithCars'
+        '401':
+          description: "Пользователь не аутентифицирован."
+        '404':
+          description: "Пользователь не найден."
+
+    put:
+      tags: [Users]
+      summary: "Полное обновление профиля текущего пользователя"
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUserInput'
+      responses:
+        '200':
+          description: "Профиль успешно обновлен."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: "Некорректные данные в запросе."
+        '401':
+          description: "Пользователь не аутентифицирован."
+        '404':
+          description: "Пользователь не найден."
+
+    delete:
+      tags: [Users]
+      summary: "Удаление профиля текущего пользователя"
+      description: "Рекомендуется использовать 'soft delete' на бэкенде."
+      security:
+        - BearerAuth: []
+      responses:
+        '204':
+          description: "Пользователь успешно удален."
+        '401':
+          description: "Пользователь не аутентифицирован."
+        '404':
+          description: "Пользователь не найден."
+
+  /users/me/cars:
+    post:
+      tags: [Cars]
+      summary: "Добавление автомобиля текущему пользователю"
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NewCarInput'
+      responses:
+        '201':
+          description: "Автомобиль успешно добавлен."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Car'
+        '400':
+          description: "Некорректные данные автомобиля."
+        '401':
+          description: "Пользователь не аутентифицирован."
+        '404':
+          description: "Пользователь не найден."
+
+  /users/me/cars/{car_id}:
+    patch:
+      tags: [Cars]
+      summary: "Частичное обновление данных автомобиля"
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: car_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: "Уникальный идентификатор автомобиля."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCarInput'
+      responses:
+        '200':
+          description: "Автомобиль успешно обновлен."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Car'
+        '400':
+          description: "Некорректные данные в запросе."
+        '401':
+          description: "Пользователь не аутентифицирован."
+        '403':
+          description: "Попытка обновить чужой автомобиль."
+        '404':
+          description: "Автомобиль не найден."
+
+    delete:
+      tags: [Cars]
+      summary: "Удаление автомобиля пользователя"
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: car_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: "ID удаляемого автомобиля."
+      responses:
+        '204':
+          description: "Автомобиль успешно удален."
+        '403':
+          description: "Доступ запрещен (попытка удалить чужой автомобиль)."
+
+components:
+  schemas:
+    # --- МОДЕЛИ ДАННЫХ ---
+    User:
+      type: object
+      properties:
+        tg_user_id:
+          type: integer
+          format: int64
+          description: "Уникальный числовой ID пользователя в Telegram."
+          example: 123456789
+        name:
+          type: string
+          description: "Имя пользователя."
+          example: "Иван"
+        phone_number:
+          type: string
+          description: "Номер телефона в формате E.164."
+          example: "+79991234567"
+        tg_link:
+          type: string
+          nullable: true
+          description: "Ссылка на профиль в Telegram (username)."
+          example: "@m0sHe4kA"
+        created_at:
+          type: string
+          format: date-time
+          description: "Время создания пользователя."
+          readOnly: true
+
+    Car:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: "Уникальный ID автомобиля."
+          readOnly: true
+        brand:
+          type: string
+          description: "Марка автомобиля."
+          example: "BMW"
+        model:
+          type: string
+          description: "Модель автомобиля."
+          example: "X5"
+        license_plate:
+          type: string
+          description: "Государственный регистрационный номер."
+          example: "А123БВ799"
+        color:
+          type: string
+          description: "Цвет автомобиля."
+          example: "Черный"
+        size:
+          type: string
+          description: "Размер/класс автомобиля (для расчета цены)."
+          example: "suv_large"
+
+    UserWithCars:
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/User'
+      properties:
+        cars:
+          type: array
+          items:
+            $ref: '#/components/schemas/Car'
+
+    # --- МОДЕЛИ ДЛЯ ТЕЛА ЗАПРОСА (INPUT) ---
+    NewUserInput:
+      type: object
+      required:
+        - tg_user_id
+        - name
+        - phone_number
+      properties:
+        tg_user_id:
+          type: integer
+          format: int64
+          example: 123456789
+        name:
+          type: string
+          example: "Иван"
+        phone_number:
+          type: string
+          example: "+79991234567"
+        tg_link:
+          type: string
+          nullable: true
+          example: "@m0sHe4kA"
+
+    UpdateUserInput:
+      type: object
+      required:
+        - name
+        - phone_number
+      properties:
+        name:
+          type: string
+          example: "Иван Петров"
+        phone_number:
+          type: string
+          example: "+79001112233"
+        tg_link:
+          type: string
+          nullable: true
+          example: "@new_m0sHe4kA"
+
+    NewCarInput:
+      type: object
+      required:
+        - brand
+        - model
+        - license_plate
+      properties:
+        brand:
+          type: string
+          example: "Audi"
+        model:
+          type: string
+          example: "Q7"
+        license_plate:
+          type: string
+          example: "В321АУ777"
+        color:
+          type: string
+          example: "Синий"
+        size:
+          type: string
+          description: "Опционально, может быть получен из VehicleCatalogService по бренду/модели."
+          example: "suv_large"
+
+    UpdateCarInput:
+      type: object
+      description: "Модель для частичного обновления автомобиля. Все поля опциональны."
+      properties:
+        brand:
+          type: string
+          example: "Audi"
+        model:
+          type: string
+          example: "Q8"
+        license_plate:
+          type: string
+          example: "В321АУ777"
+        color:
+          type: string
+          example: "Белый"
+        size:
+          type: string
+          example: "suv_large"
+
+    Error:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: "Код ошибки."
+          example: 400
+        message:
+          type: string
+          description: "Описание ошибки."
+          example: "Validation failed."
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "JWT токен, полученный после аутентификации пользователя через Telegram."
