@@ -203,7 +203,7 @@ func (s *Service) CreateCar(ctx context.Context, tgID int64, input models.Create
 }
 
 // UpdateCar обновляет автомобиль (PATCH)
-func (s *Service) UpdateCar(ctx context.Context, tgID int64, carID string, input models.UpdateCarInputDTO) (*models.CarDTO, error) {
+func (s *Service) UpdateCar(ctx context.Context, tgID int64, carID int64, input models.UpdateCarInputDTO) (*models.CarDTO, error) {
 	car, err := s.carRepo.GetByID(ctx, carID)
 	if err != nil {
 		if errors.Is(err, ErrCarNotFound) {
@@ -251,7 +251,7 @@ func (s *Service) UpdateCar(ctx context.Context, tgID int64, carID string, input
 }
 
 // DeleteCar удаляет автомобиль
-func (s *Service) DeleteCar(ctx context.Context, tgID int64, carID string) error {
+func (s *Service) DeleteCar(ctx context.Context, tgID int64, carID int64) error {
 	car, err := s.carRepo.GetByID(ctx, carID)
 	if err != nil {
 		if errors.Is(err, ErrCarNotFound) {

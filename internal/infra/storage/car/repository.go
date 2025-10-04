@@ -42,7 +42,7 @@ func (r *Repository) Create(ctx context.Context, car *domain.Car) (*domain.Car, 
 		return nil, fmt.Errorf("%w: %v", ErrBuildQuery, err)
 	}
 
-	var carID string
+	var carID int64
 	err = r.db.QueryRowContext(ctx, query, args...).Scan(&carID)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrCreateCar, err)
@@ -53,7 +53,7 @@ func (r *Repository) Create(ctx context.Context, car *domain.Car) (*domain.Car, 
 }
 
 // GetByID получает автомобиль по ID
-func (r *Repository) GetByID(ctx context.Context, carID string) (*domain.Car, error) {
+func (r *Repository) GetByID(ctx context.Context, carID int64) (*domain.Car, error) {
 	query, args, err := psqlbuilder.Select("id", "user_id", "brand", "model", "license_plate", "color", "size").
 		From("cars").
 		Where(squirrel.Eq{"id": carID}).
@@ -129,7 +129,7 @@ func (r *Repository) Update(ctx context.Context, car *domain.Car) error {
 }
 
 // Delete удаляет автомобиль
-func (r *Repository) Delete(ctx context.Context, carID string) error {
+func (r *Repository) Delete(ctx context.Context, carID int64) error {
 	query, args, err := psqlbuilder.Delete("cars").
 		Where(squirrel.Eq{"id": carID}).
 		ToSql()

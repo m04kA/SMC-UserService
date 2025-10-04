@@ -53,7 +53,7 @@ type UpdateCarInputDTO struct {
 }
 
 type CarDTO struct {
-	ID           string  `json:"id"`
+	ID           int64   `json:"id"`
 	UserID       int64   `json:"user_id"`
 	Brand        string  `json:"brand"`
 	Model        string  `json:"model"`

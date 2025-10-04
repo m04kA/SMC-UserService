@@ -13,6 +13,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/m04kA/SMK-UserService/internal/config"
 	"github.com/m04kA/SMK-UserService/internal/handlers/api/create_car"
@@ -26,28 +27,37 @@ import (
 	carrepo "github.com/m04kA/SMK-UserService/internal/infra/storage/car"
 	userrepo "github.com/m04kA/SMK-UserService/internal/infra/storage/user"
 	userservice "github.com/m04kA/SMK-UserService/internal/service/user"
+	"github.com/m04kA/SMK-UserService/pkg/logger"
 )
 
 func main() {
+	// Инициализируем логгер
+	if err := logger.Init("./logs/app.log"); err != nil {
+		log.Fatalf("Failed to initialize logger: %v", err)
+	}
+	defer logger.Close()
+
+	logger.Info("Starting SMK-UserService...")
 
 	// Загружаем конфигурацию
 	cfg, err := config.Load("./config.toml")
 	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
+		logger.Fatal("Failed to load config: %v", err)
 	}
+	logger.Info("Configuration loaded successfully")
 
 	// Подключаемся к базе данных
 	db, err := sqlx.Connect("postgres", cfg.Database.DSN())
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		logger.Fatal("Failed to connect to database: %v", err)
 	}
 	defer db.Close()
 
 	// Проверяем соединение
 	if err := db.Ping(); err != nil {
-		log.Fatalf("Failed to ping database: %v", err)
+		logger.Fatal("Failed to ping database: %v", err)
 	}
-	log.Println("Successfully connected to database")
+	logger.Info("Successfully connected to database")
 
 	// Инициализируем репозитории
 	userRepo := userrepo.NewRepository(db)
@@ -70,6 +80,12 @@ func main() {
 
 	// Настраиваем роутер
 	r := mux.NewRouter()
+
+	// Применяем metrics middleware ко всем роутам
+	r.Use(middleware.Metrics)
+
+	// Metrics endpoint
+	r.Handle("/metrics", promhttp.Handler()).Methods(http.MethodGet)
 
 	// Public routes
 	r.HandleFunc("/users", createUserHandler.Handle).Methods(http.MethodPost)
@@ -98,9 +114,9 @@ func main() {
 
 	// Graceful shutdown
 	go func() {
-		log.Printf("Starting server on %s", addr)
+		logger.Info("Starting server on %s", addr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Server failed to start: %v", err)
+			logger.Fatal("Server failed to start: %v", err)
 		}
 	}()
 
@@ -109,14 +125,14 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	log.Println("Shutting down server...")
+	logger.Info("Shutting down server...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatalf("Server forced to shutdown: %v", err)
+		logger.Error("Server forced to shutdown: %v", err)
 	}
 
-	log.Println("Server stopped")
+	logger.Info("Server stopped gracefully")
 }

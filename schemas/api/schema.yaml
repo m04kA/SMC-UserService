@@ -91,6 +91,31 @@ paths:
         '404':
           description: "Пользователь не найден."
 
+  /metrics:
+    get:
+      tags: [Monitoring]
+      summary: "Prometheus метрики"
+      description: "Endpoint для сбора метрик Prometheus. Возвращает метрики в формате OpenMetrics."
+      responses:
+        '200':
+          description: "Метрики успешно получены."
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: |
+                  # HELP http_requests_total Total number of HTTP requests
+                  # TYPE http_requests_total counter
+                  http_requests_total{method="GET",endpoint="/users/me",status="200"} 42
+
+                  # HELP http_request_duration_seconds HTTP request duration in seconds
+                  # TYPE http_request_duration_seconds histogram
+                  http_request_duration_seconds_bucket{method="GET",endpoint="/users/me",status="200",le="0.005"} 10
+
+                  # HELP http_requests_in_flight Current number of HTTP requests being processed
+                  # TYPE http_requests_in_flight gauge
+                  http_requests_in_flight 3
+
   /users/me/cars:
     post:
       tags: [Cars]
@@ -128,8 +153,8 @@ paths:
           in: path
           required: true
           schema:
-            type: string
-            format: uuid
+            type: integer
+            format: int64
           description: "Уникальный идентификатор автомобиля."
       requestBody:
         required: true
@@ -163,8 +188,8 @@ paths:
           in: path
           required: true
           schema:
-            type: string
-            format: uuid
+            type: integer
+            format: int64
           description: "ID удаляемого автомобиля."
       responses:
         '204':
@@ -206,9 +231,14 @@ components:
       type: object
       properties:
         id:
-          type: string
-          format: uuid
+          type: integer
+          format: int64
           description: "Уникальный ID автомобиля."
+          readOnly: true
+        user_id:
+          type: integer
+          format: int64
+          description: "ID пользователя-владельца автомобиля."
           readOnly: true
         brand:
           type: string

@@ -6,6 +6,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 SMK-UserService - сервис управления пользователями и их автомобилями для приложения автомойки. Использует Clean Architecture с разделением на domain, service, infrastructure и handlers.
 
+### Tech Stack
+- **Language**: Go 1.21+
+- **Architecture**: Clean Architecture (Domain, Service, Repository, Handlers)
+- **Database**: PostgreSQL 16 + sqlx + golang-migrate
+- **HTTP Router**: Gorilla Mux
+- **Query Builder**: Squirrel (psqlbuilder wrapper)
+- **Authentication**: JWT (golang-jwt/jwt/v5)
+- **Monitoring**: Prometheus + Grafana
+- **Logging**: Custom logger (console + file)
+- **Containerization**: Docker Compose
+
 ## Development Commands
 
 ### Docker Environment
@@ -35,6 +46,13 @@ go test ./...
 - Connection string: `host=localhost port=5435 user=postgres password=postgres dbname=smk_userservice sslmode=disable`
 - Миграции автоматически применяются при `docker-compose up`
 
+### Monitoring
+- **Prometheus**: http://localhost:9091 - сбор метрик
+- **Grafana**: http://localhost:3001 - визуализация метрик
+  - Логин: `admin`
+  - Пароль: `admin`
+  - Dashboard "SMK UserService - HTTP Metrics" автоматически загружается при старте
+
 ## Architecture
 
 ### Clean Architecture Layers
@@ -43,6 +61,7 @@ go test ./...
    - `user.go` - доменная модель User с db тегами для sqlx
    - `car.go` - доменная модель Car с db тегами для sqlx
    - Поля: TGLink (не TGLing), все nullable поля используют указатели
+   - Car.ID использует int64 (BIGSERIAL в БД)
 
 2. **Service Layer** (`internal/service/user/`)
    - `user_service.go` - полная бизнес-логика для User и Car
@@ -69,6 +88,7 @@ go test ./...
    - `api/update_car/handler.go` - PATCH /users/me/cars/{car_id}
    - `api/delete_car/handler.go` - DELETE /users/me/cars/{car_id}
    - `middleware/auth.go` - JWT аутентификация middleware
+   - `middleware/metrics.go` - Prometheus метрики middleware
 
 5. **Configuration** (`internal/config/`)
    - `config.go` - загрузка config.toml с секциями logs, server, database, jwt
@@ -80,6 +100,45 @@ go test ./...
 - **Dependency Injection**: Все зависимости через конструкторы
 - **Error Wrapping**: Многоуровневая обработка ошибок (repository → service → handler)
 - **Handler per Endpoint**: Каждый endpoint в отдельной папке для тестирования
+- **Middleware Pattern**: Metrics и Auth middleware для всех endpoints
+
+### Logging
+
+Сервис использует кастомный логгер (`pkg/logger`) с многоуровневой записью:
+- **INFO** - информационные сообщения (только консоль)
+- **WARN** - предупреждения для 4xx ошибок (консоль + файл `logs/app.log`)
+- **ERROR** - ошибки для 5xx ошибок (консоль + файл `logs/app.log`)
+
+Все handlers логируют:
+- Успешные операции (INFO): метод, endpoint, user_id, результат
+- Ошибки валидации (WARN): метод, endpoint, user_id, детали ошибки
+- Ошибки авторизации (WARN): метод, endpoint, причина
+- Внутренние ошибки (ERROR): метод, endpoint, user_id, полный стек ошибки
+
+### Monitoring & Observability
+
+**Prometheus метрики:**
+- **http_requests_total** - счётчик всех HTTP запросов (labels: method, endpoint, status)
+- **http_request_duration_seconds** - гистограмма длительности запросов (labels: method, endpoint, status)
+- **http_requests_in_flight** - gauge текущих активных запросов
+
+Метрики доступны на endpoint `/metrics`
+
+**Grafana Dashboard:**
+
+Dashboard "SMK UserService - HTTP Metrics" включает:
+1. **HTTP Request Rate** - частота запросов в секунду по endpoint'ам
+2. **Requests In Flight** - текущее количество обрабатываемых запросов
+3. **HTTP Request Duration (p95, p99)** - перцентили времени обработки запросов
+4. **HTTP Status Codes Distribution** - распределение статус-кодов
+5. **Requests by Endpoint** - запросы по endpoint'ам
+
+**Как посмотреть метрики:**
+1. Запустите сервис: `go run cmd/main.go`
+2. Запустите мониторинг: `docker-compose up -d prometheus grafana`
+3. Сделайте несколько запросов к API для генерации метрик
+4. Откройте Grafana: http://localhost:3001 (admin/admin)
+5. Dashboard автоматически загружен и доступен на главной странице
 
 ### Database Schema
 
@@ -89,7 +148,7 @@ go test ./...
   - Index на phone_number
 
 - **cars table**:
-  - id UUID PRIMARY KEY (генерируется БД)
+  - id BIGSERIAL PRIMARY KEY (автоинкремент)
   - user_id BIGINT FK → users(tg_user_id) ON DELETE CASCADE
   - brand, model, license_plate (required)
   - color, size (nullable)
@@ -115,6 +174,9 @@ API реализует OpenAPI спецификацию из `schemas/api/schema
 - `POST /users/me/cars` - добавление автомобиля
 - `PATCH /users/me/cars/{car_id}` - частичное обновление автомобиля
 - `DELETE /users/me/cars/{car_id}` - удаление автомобиля
+
+### Monitoring Endpoints
+- `GET /metrics` - Prometheus метрики в формате OpenMetrics
 
 ### Authentication
 JWT Bearer token в заголовке Authorization:
@@ -164,7 +226,9 @@ SMK-UserService/
 │   │   ├── user/repository.go
 │   │   └── car/repository.go
 │   └── handlers/
-│       ├── middleware/auth.go
+│       ├── middleware/
+│       │   ├── auth.go
+│       │   └── metrics.go
 │       └── api/
 │           ├── helpers.go
 │           ├── create_user/handler.go

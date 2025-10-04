@@ -1,7 +1,7 @@
 package domain
 
 type Car struct {
-	ID           string  `json:"id" db:"id"`
+	ID           int64   `json:"id" db:"id"`
 	UserID       int64   `json:"user_id" db:"user_id"`
 	Brand        string  `json:"brand" db:"brand" validate:"required"`
 	Model        string  `json:"model" db:"model" validate:"required"`

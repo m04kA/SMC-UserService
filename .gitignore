@@ -21,6 +21,10 @@ go.work
 # Docker volumes
 docker/
 
+# Logs
+logs/
+*.log
+
 # OS
 .DS_Store
 
