@@ -2,6 +2,8 @@ package config
 
 import (
 	"fmt"
+	"os"
+	"strconv"
 
 	"github.com/BurntSushi/toml"
 )
@@ -39,6 +41,26 @@ func Load(path string) (*Config, error) {
 	if _, err := toml.DecodeFile(path, &cfg); err != nil {
 		return nil, fmt.Errorf("failed to load config: %w", err)
 	}
+
+	// Override with environment variables if present
+	if host := os.Getenv("DATABASE_HOST"); host != "" {
+		cfg.Database.Host = host
+	}
+	if portStr := os.Getenv("DATABASE_PORT"); portStr != "" {
+		if port, err := strconv.Atoi(portStr); err == nil {
+			cfg.Database.Port = port
+		}
+	}
+	if user := os.Getenv("DATABASE_USER"); user != "" {
+		cfg.Database.User = user
+	}
+	if password := os.Getenv("DATABASE_PASSWORD"); password != "" {
+		cfg.Database.Password = password
+	}
+	if dbname := os.Getenv("DATABASE_NAME"); dbname != "" {
+		cfg.Database.DBName = dbname
+	}
+
 	return &cfg, nil
 }
 

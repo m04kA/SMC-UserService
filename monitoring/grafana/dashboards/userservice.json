@@ -101,7 +101,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "rate(http_requests_total[1m]) * 60",
+          "expr": "increase(http_requests_total[1m])",
           "refId": "A",
           "legendFormat": "{{method}} {{endpoint}} - {{status}}"
         }
@@ -408,7 +408,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by(endpoint) (rate(http_requests_total[1m]) * 60)",
+          "expr": "sum by(endpoint) (increase(http_requests_total[1m]))",
           "refId": "A",
           "legendFormat": "{{endpoint}}"
         }

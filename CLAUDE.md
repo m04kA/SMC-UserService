@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 SMK-UserService - сервис управления пользователями и их автомобилями для приложения автомойки. Использует Clean Architecture с разделением на domain, service, infrastructure и handlers.
 
 ### Tech Stack
-- **Language**: Go 1.21+
+- **Language**: Go 1.24+
 - **Architecture**: Clean Architecture (Domain, Service, Repository, Handlers)
 - **Database**: PostgreSQL 16 + sqlx + golang-migrate
 - **HTTP Router**: Gorilla Mux
@@ -16,29 +16,64 @@ SMK-UserService - сервис управления пользователями
 - **Monitoring**: Prometheus + Grafana
 - **Logging**: Custom logger (console + file)
 - **Containerization**: Docker Compose
+- **Build Tool**: Makefile
 
 ## Development Commands
 
-### Docker Environment
+### Quick Start (Docker)
 ```bash
-# Запуск PostgreSQL и миграций
-docker-compose up -d
+# Запуск всех сервисов (рекомендуется)
+make docker-up
 
-# Остановка
-docker-compose down
+# Просмотр логов приложения
+make docker-logs-app
 
-# Пересоздание с удалением данных
-docker-compose down -v && docker-compose up -d
+# Остановка всех сервисов
+make docker-down
 ```
 
-### Build and Run
+### Local Development
 ```bash
-go run cmd/main.go
+# Запуск только инфраструктуры
+make dev
+
+# Запуск приложения локально
+make run
+
+# Сборка бинарного файла
+make build
 ```
 
 ### Testing
 ```bash
-go test ./...
+make test
+```
+
+### Database Management
+```bash
+# Применить миграции
+make migrate-up
+
+# Откатить миграции
+make migrate-down
+
+# Полный сброс БД
+make db-reset
+```
+
+### Cleanup Commands
+```bash
+# Очистка артефактов и логов
+make clean
+
+# Остановка сервисов и удаление volumes
+make docker-clean
+
+# Удаление Docker образов проекта
+make docker-prune
+
+# Полная очистка (artifacts + logs + volumes + images)
+make clean-all
 ```
 
 ### Database
@@ -205,6 +240,17 @@ sslmode = "disable"
 [jwt]
 secret = "your-secret-key-change-in-production"
 ```
+
+### Environment Variables Override
+
+При запуске в Docker конфигурация БД переопределяется переменными окружения из `docker-compose.yml`:
+- `DATABASE_HOST` → host (для Docker используется "postgres")
+- `DATABASE_PORT` → port (для Docker используется 5432)
+- `DATABASE_USER` → user
+- `DATABASE_PASSWORD` → password
+- `DATABASE_NAME` → dbname
+
+При локальном запуске (`make run`) используются значения из `config.toml`.
 
 ## Project Structure
 
