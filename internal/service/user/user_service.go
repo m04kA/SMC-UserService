@@ -40,11 +40,16 @@ func (s *Service) CreateUser(ctx context.Context, input models.CreateUserInputDT
 		return nil, fmt.Errorf("%w: %v", ErrServiceGetUser, err)
 	}
 
+	// Маппинг роли в role_id
+	roleID := roleToID(input.Role)
+
 	user := &domain.User{
 		TGUserID:    input.TGUserID,
 		Name:        input.Name,
 		PhoneNumber: input.PhoneNumber,
 		TGLink:      input.TGLink,
+		RoleID:      roleID,
+		Role:        input.Role,
 		CreatedAt:   time.Now(),
 	}
 
@@ -57,6 +62,7 @@ func (s *Service) CreateUser(ctx context.Context, input models.CreateUserInputDT
 		Name:        user.Name,
 		PhoneNumber: user.PhoneNumber,
 		TGLink:      user.TGLink,
+		Role:        user.Role,
 		CreatedAt:   user.CreatedAt,
 	}
 
@@ -86,6 +92,7 @@ func (s *Service) UpdateUser(ctx context.Context, tgID int64, input models.Updat
 		Name:        user.Name,
 		PhoneNumber: user.PhoneNumber,
 		TGLink:      user.TGLink,
+		Role:        user.Role,
 		CreatedAt:   user.CreatedAt,
 	}
 
@@ -119,6 +126,7 @@ func (s *Service) GetUserByID(ctx context.Context, tgID int64) (*models.UserDTO,
 		Name:        user.Name,
 		PhoneNumber: user.PhoneNumber,
 		TGLink:      user.TGLink,
+		Role:        user.Role,
 		CreatedAt:   user.CreatedAt,
 	}
 
@@ -158,11 +166,26 @@ func (s *Service) GetUserWithCars(ctx context.Context, tgID int64) (*models.User
 		Name:        user.Name,
 		PhoneNumber: user.PhoneNumber,
 		TGLink:      user.TGLink,
+		Role:        user.Role,
 		CreatedAt:   user.CreatedAt,
 		Cars:        carDTOs,
 	}
 
 	return response, nil
+}
+
+// roleToID маппит роль в ID для БД
+func roleToID(role domain.Role) int {
+	switch role {
+	case domain.RoleClient:
+		return 1
+	case domain.RoleManager:
+		return 2
+	case domain.RoleSuperUser:
+		return 3
+	default:
+		return 1 // default client
+	}
 }
 
 // CreateCar создает новый автомобиль
@@ -202,8 +225,8 @@ func (s *Service) CreateCar(ctx context.Context, tgID int64, input models.Create
 	return response, nil
 }
 
-// UpdateCar обновляет автомобиль (PATCH)
-func (s *Service) UpdateCar(ctx context.Context, tgID int64, carID int64, input models.UpdateCarInputDTO) (*models.CarDTO, error) {
+// UpdateCar обновляет автомобиль (PATCH) с проверкой роли
+func (s *Service) UpdateCar(ctx context.Context, tgID int64, carID int64, input models.UpdateCarInputDTO, role domain.Role) (*models.CarDTO, error) {
 	car, err := s.carRepo.GetByID(ctx, carID)
 	if err != nil {
 		if errors.Is(err, ErrCarNotFound) {
@@ -212,7 +235,8 @@ func (s *Service) UpdateCar(ctx context.Context, tgID int64, carID int64, input 
 		return nil, fmt.Errorf("%w: %v", ErrServiceGetCar, err)
 	}
 
-	if car.UserID != tgID {
+	// Проверка доступа: владелец может изменять свою машину, superuser - любую
+	if !role.CanModifyUser(car.UserID, tgID) {
 		return nil, ErrCarAccessDenied
 	}
 
@@ -250,8 +274,8 @@ func (s *Service) UpdateCar(ctx context.Context, tgID int64, carID int64, input 
 	return response, nil
 }
 
-// DeleteCar удаляет автомобиль
-func (s *Service) DeleteCar(ctx context.Context, tgID int64, carID int64) error {
+// DeleteCar удаляет автомобиль с проверкой роли
+func (s *Service) DeleteCar(ctx context.Context, tgID int64, carID int64, role domain.Role) error {
 	car, err := s.carRepo.GetByID(ctx, carID)
 	if err != nil {
 		if errors.Is(err, ErrCarNotFound) {
@@ -260,7 +284,8 @@ func (s *Service) DeleteCar(ctx context.Context, tgID int64, carID int64) error 
 		return fmt.Errorf("%w: %v", ErrServiceGetCar, err)
 	}
 
-	if car.UserID != tgID {
+	// Проверка доступа: владелец может удалять свою машину, superuser - любую
+	if !role.CanModifyUser(car.UserID, tgID) {
 		return ErrCarAccessDenied
 	}
 

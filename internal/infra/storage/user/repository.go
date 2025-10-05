@@ -34,8 +34,8 @@ func NewRepository(executor *sqlx.DB) *Repository {
 // Create сохраняет нового пользователя в базу данных
 func (r *Repository) Create(ctx context.Context, user *domain.User) error {
 	query, args, err := psqlbuilder.Insert("users").
-		Columns("tg_user_id", "name", "phone_number", "tg_link", "created_at").
-		Values(user.TGUserID, user.Name, user.PhoneNumber, user.TGLink, user.CreatedAt).
+		Columns("tg_user_id", "name", "phone_number", "tg_link", "role_id", "created_at").
+		Values(user.TGUserID, user.Name, user.PhoneNumber, user.TGLink, user.RoleID, user.CreatedAt).
 		ToSql()
 	if err != nil {
 		return fmt.Errorf("%w: %v", ErrBuildQuery, err)
@@ -51,9 +51,18 @@ func (r *Repository) Create(ctx context.Context, user *domain.User) error {
 
 // GetByTGID находит пользователя по Telegram ID
 func (r *Repository) GetByTGID(ctx context.Context, tgID int64) (*domain.User, error) {
-	query, args, err := psqlbuilder.Select("tg_user_id", "name", "phone_number", "tg_link", "created_at").
-		From("users").
-		Where(squirrel.Eq{"tg_user_id": tgID}).
+	query, args, err := psqlbuilder.Select(
+		"u.tg_user_id",
+		"u.name",
+		"u.phone_number",
+		"u.tg_link",
+		"u.role_id",
+		"r.name as role_name",
+		"u.created_at",
+	).
+		From("users u").
+		LeftJoin("roles r ON u.role_id = r.id").
+		Where(squirrel.Eq{"u.tg_user_id": tgID}).
 		ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrBuildQuery, err)

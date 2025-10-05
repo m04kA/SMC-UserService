@@ -1,14 +1,19 @@
 package models
 
-import "time"
+import (
+	"time"
+
+	"github.com/m04kA/SMK-UserService/internal/domain"
+)
 
 // User DTOs
 
 type CreateUserInputDTO struct {
-	TGUserID    int64   `json:"tg_user_id" validate:"required"`
-	Name        string  `json:"name" validate:"required"`
-	PhoneNumber string  `json:"phone_number" validate:"required,e164"`
-	TGLink      *string `json:"tg_link"`
+	TGUserID    int64       `json:"tg_user_id" validate:"required"`
+	Name        string      `json:"name" validate:"required"`
+	PhoneNumber string      `json:"phone_number" validate:"required,e164"`
+	TGLink      *string     `json:"tg_link"`
+	Role        domain.Role `json:"role" validate:"required,oneof=client manager superuser"`
 }
 
 type UpdateUserInputDTO struct {
@@ -18,20 +23,22 @@ type UpdateUserInputDTO struct {
 }
 
 type UserDTO struct {
-	TGUserID    int64     `json:"tg_user_id"`
-	Name        string    `json:"name"`
-	PhoneNumber string    `json:"phone_number"`
-	TGLink      *string   `json:"tg_link,omitempty"`
-	CreatedAt   time.Time `json:"created_at"`
+	TGUserID    int64       `json:"tg_user_id"`
+	Name        string      `json:"name"`
+	PhoneNumber string      `json:"phone_number"`
+	TGLink      *string     `json:"tg_link,omitempty"`
+	Role        domain.Role `json:"role"`
+	CreatedAt   time.Time   `json:"created_at"`
 }
 
 type UserWithCarsDTO struct {
-	TGUserID    int64     `json:"tg_user_id"`
-	Name        string    `json:"name"`
-	PhoneNumber string    `json:"phone_number"`
-	TGLink      *string   `json:"tg_link,omitempty"`
-	CreatedAt   time.Time `json:"created_at"`
-	Cars        []CarDTO  `json:"cars"`
+	TGUserID    int64       `json:"tg_user_id"`
+	Name        string      `json:"name"`
+	PhoneNumber string      `json:"phone_number"`
+	TGLink      *string     `json:"tg_link,omitempty"`
+	Role        domain.Role `json:"role"`
+	CreatedAt   time.Time   `json:"created_at"`
+	Cars        []CarDTO    `json:"cars"`
 }
 
 // Car DTOs

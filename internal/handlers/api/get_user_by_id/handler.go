@@ -13,10 +13,10 @@ import (
 )
 
 type Handler struct {
-	service user.Service
+	service *user.Service
 }
 
-func NewHandler(service user.Service) *Handler {
+func NewHandler(service *user.Service) *Handler {
 	return &Handler{service: service}
 }
 
@@ -28,7 +28,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	tgUserID, err := strconv.ParseInt(userIDStr, 10, 64)
 	if err != nil {
 		logger.Warn("GET /internal/users/{tg_user_id} - invalid user ID format: %s", userIDStr)
-		api.RespondError(w, "invalid user ID format", http.StatusBadRequest)
+		api.RespondError(w, http.StatusBadRequest, "invalid user ID format")
 		return
 	}
 
@@ -37,15 +37,15 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, user.ErrUserNotFound) {
 			logger.Warn("GET /internal/users/%d - user not found", tgUserID)
-			api.RespondError(w, "user not found", http.StatusNotFound)
+			api.RespondError(w, http.StatusNotFound, "user not found")
 			return
 		}
 
 		logger.Error("GET /internal/users/%d - failed to get user: %v", tgUserID, err)
-		api.RespondError(w, "internal server error", http.StatusInternalServerError)
+		api.RespondError(w, http.StatusInternalServerError, "internal server error")
 		return
 	}
 
 	logger.Info("GET /internal/users/%d - success", tgUserID)
-	api.RespondJSON(w, userWithCars, http.StatusOK)
+	api.RespondJSON(w, http.StatusOK, userWithCars)
 }

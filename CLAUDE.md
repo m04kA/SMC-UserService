@@ -12,7 +12,7 @@ SMK-UserService - сервис управления пользователями
 - **Database**: PostgreSQL 16 + sqlx + golang-migrate
 - **HTTP Router**: Gorilla Mux
 - **Query Builder**: Squirrel (psqlbuilder wrapper)
-- **Authentication**: JWT (golang-jwt/jwt/v5)
+- **Authentication**: Simplified (X-User-ID + X-User-Role headers for MVP)
 - **Monitoring**: Prometheus + Grafana
 - **Logging**: Custom logger (console + file)
 - **Containerization**: Docker Compose
@@ -94,21 +94,30 @@ make clean-all
 
 1. **Domain Layer** (`internal/domain/`)
    - `user.go` - доменная модель User с db тегами для sqlx
+     - Поля: TGUserID, Name, PhoneNumber, TGLink, RoleID, Role, CreatedAt
+     - TGLink и все nullable поля используют указатели
    - `car.go` - доменная модель Car с db тегами для sqlx
-   - Поля: TGLink (не TGLing), все nullable поля используют указатели
-   - Car.ID использует int64 (BIGSERIAL в БД)
+     - Car.ID использует int64 (BIGSERIAL в БД)
+   - `role.go` - ролевая модель и проверки прав доступа
+     - Роли: client, manager, superuser
+     - Методы: CanAccessUser(), CanModifyUser()
 
 2. **Service Layer** (`internal/service/user/`)
    - `user_service.go` - полная бизнес-логика для User и Car
      - User: CreateUser, UpdateUser, DeleteUser, GetUserByID, GetUserWithCars
-     - Car: CreateCar, UpdateCar (PATCH), DeleteCar
+     - Car: CreateCar, UpdateCar (PATCH + role), DeleteCar (role)
+     - Все методы для Car принимают параметр role для проверки прав доступа
+     - Проверка прав доступа на основе ролей (role.CanModifyUser)
      - Обработка ошибок с wrapping через fmt.Errorf
    - `contract.go` - интерфейсы репозиториев и кастомные ошибки
      - ErrUserNotFound, ErrUserAlreadyExists, ErrCarNotFound, ErrCarAccessDenied
    - `models/models.go` - все DTO модели (User, Car, UserWithCars)
+     - DTOs включают поле role
 
 3. **Infrastructure Layer** (`internal/infra/storage/`)
    - `user/repository.go` - UserRepository с обработкой ошибок
+     - JOIN с таблицей roles для получения имени роли
+     - Create/GetByTGID/Update/Delete с поддержкой role_id
    - `car/repository.go` - CarRepository с обработкой ошибок
    - Используют psqlbuilder для построения SQL запросов
    - Все методы имеют собственные кастомные ошибки (ErrCreateUser, ErrGetUser, etc.)
@@ -120,13 +129,15 @@ make clean-all
    - `api/update_current_user/handler.go` - PUT /users/me
    - `api/delete_current_user/handler.go` - DELETE /users/me
    - `api/create_car/handler.go` - POST /users/me/cars
-   - `api/update_car/handler.go` - PATCH /users/me/cars/{car_id}
-   - `api/delete_car/handler.go` - DELETE /users/me/cars/{car_id}
-   - `middleware/auth.go` - JWT аутентификация middleware
+   - `api/update_car/handler.go` - PATCH /users/me/cars/{car_id} (извлекает role из context и передаёт в сервис)
+   - `api/delete_car/handler.go` - DELETE /users/me/cars/{car_id} (извлекает role из context и передаёт в сервис)
+   - `api/get_user_by_id/handler.go` - GET /internal/users/{tg_user_id} (межсервисное взаимодействие)
+   - `middleware/auth.go` - упрощённая аутентификация через X-User-ID и X-User-Role
+     - Функции: UserIDAuth, GetUserIDFromContext, GetRoleFromContext, RequireSuperUser
    - `middleware/metrics.go` - Prometheus метрики middleware
 
 5. **Configuration** (`internal/config/`)
-   - `config.go` - загрузка config.toml с секциями logs, server, database, jwt
+   - `config.go` - загрузка config.toml с секциями logs, server, database
 
 ### Key Design Patterns
 
@@ -177,10 +188,18 @@ Dashboard "SMK UserService - HTTP Metrics" включает:
 
 ### Database Schema
 
+- **roles table**:
+  - id SERIAL PRIMARY KEY
+  - name VARCHAR(20) UNIQUE (client, manager, superuser)
+  - description TEXT
+  - created_at TIMESTAMP
+
 - **users table**:
   - tg_user_id BIGINT PRIMARY KEY
   - name, phone_number, tg_link, created_at
+  - role_id INTEGER FK → roles(id) ON DELETE RESTRICT
   - Index на phone_number
+  - Index на role_id
 
 - **cars table**:
   - id BIGSERIAL PRIMARY KEY (автоинкремент)
@@ -200,9 +219,12 @@ Dashboard "SMK UserService - HTTP Metrics" включает:
 API реализует OpenAPI спецификацию из `schemas/api/schema.yaml`:
 
 ### Public Endpoints
-- `POST /users` - создание пользователя
+- `POST /users` - создание пользователя (с указанием роли)
 
-### Protected Endpoints (JWT required)
+### Internal Endpoints (для межсервисного взаимодействия)
+- `GET /internal/users/{tg_user_id}` - получение пользователя с автомобилями по ID
+
+### Protected Endpoints (требуют X-User-ID и X-User-Role)
 - `GET /users/me` - получение пользователя с автомобилями
 - `PUT /users/me` - обновление профиля
 - `DELETE /users/me` - удаление профиля
@@ -213,11 +235,66 @@ API реализует OpenAPI спецификацию из `schemas/api/schema
 ### Monitoring Endpoints
 - `GET /metrics` - Prometheus метрики в формате OpenMetrics
 
-### Authentication
-JWT Bearer token в заголовке Authorization:
-- Формат: `Authorization: Bearer <token>`
-- Token должен содержать claim `tg_user_id` (int64 или string)
-- UserID извлекается из токена и используется для авторизации действий
+### Authentication (MVP - Упрощённая версия)
+
+Для доступа к защищённым endpoints используются два заголовка:
+```
+X-User-ID: <telegram_user_id>
+X-User-Role: <client|manager|superuser>
+```
+
+**⚠️ Важно**: Это временное решение для MVP. В продакшене планируется:
+- Отдельный SMK-AuthService для генерации JWT токенов
+- Валидация Telegram InitData
+- Refresh token механизм
+- Полноценная JWT аутентификация
+
+### Role-Based Access Control
+
+**Client** (role_id=1):
+- Может видеть и изменять **только свои данные**
+- Может управлять **только своими автомобилями**
+- Проверка: `targetUserID == requestUserID`
+- При попытке доступа к чужим данным получает 403 Forbidden
+
+**Manager** (role_id=2):
+- То же, что и Client для данных пользователей
+- Дополнительный доступ к настройкам компании (в других сервисах)
+
+**Superuser** (role_id=3):
+- **Полный доступ** ко всем данным
+- Может изменять любых пользователей и автомобили
+- `role.CanModifyUser()` всегда возвращает true
+- Обходит все проверки на владение ресурсами
+
+### Примеры проверки прав доступа
+
+```go
+// В user_service.go для операций с автомобилями:
+func (s *Service) UpdateCar(ctx context.Context, tgID int64, carID int64, input models.UpdateCarInputDTO, role domain.Role) (*models.CarDTO, error) {
+    car, err := s.carRepo.GetByID(ctx, carID)
+
+    // Проверка прав: superuser может изменять любую машину, остальные - только свои
+    if !role.CanModifyUser(car.UserID, tgID) {
+        return nil, ErrCarAccessDenied
+    }
+    // ... обновление автомобиля
+}
+```
+
+```go
+// В domain/role.go:
+func (r Role) CanModifyUser(targetUserID, requestUserID int64) bool {
+    switch r {
+    case RoleSuperUser:
+        return true // Superuser может изменять любого
+    case RoleManager, RoleClient:
+        return targetUserID == requestUserID // Только свои данные
+    default:
+        return false
+    }
+}
+```
 
 ## Configuration
 
@@ -236,9 +313,6 @@ user = "postgres"
 password = "postgres"
 dbname = "smk_userservice"
 sslmode = "disable"
-
-[jwt]
-secret = "your-secret-key-change-in-production"
 ```
 
 ### Environment Variables Override
@@ -289,7 +363,9 @@ SMK-UserService/
 │   ├── 001_create_users_table.up.sql
 │   ├── 001_create_users_table.down.sql
 │   ├── 002_create_cars_table.up.sql
-│   └── 002_create_cars_table.down.sql
+│   ├── 002_create_cars_table.down.sql
+│   ├── 003_add_roles.up.sql
+│   └── 003_add_roles.down.sql
 ├── docker-compose.yml
 ├── config.toml
 └── .gitignore

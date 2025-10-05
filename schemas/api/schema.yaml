@@ -255,6 +255,11 @@ components:
           nullable: true
           description: "Ссылка на профиль в Telegram (username)."
           example: "@m0sHe4kA"
+        role:
+          type: string
+          enum: [client, manager, superuser]
+          description: "Роль пользователя в системе."
+          example: "client"
         created_at:
           type: string
           format: date-time
@@ -312,6 +317,7 @@ components:
         - tg_user_id
         - name
         - phone_number
+        - role
       properties:
         tg_user_id:
           type: integer
@@ -327,6 +333,11 @@ components:
           type: string
           nullable: true
           example: "@m0sHe4kA"
+        role:
+          type: string
+          enum: [client, manager, superuser]
+          description: "Роль пользователя. По умолчанию: client."
+          example: "client"
 
     UpdateUserInput:
       type: object
@@ -406,4 +417,7 @@ components:
       type: apiKey
       in: header
       name: X-User-ID
-      description: "Telegram user ID пользователя для упрощенной аутентификации (MVP)."
+      description: |
+        Упрощенная аутентификация (MVP). Требуется передавать два заголовка:
+        - X-User-ID: Telegram user ID пользователя
+        - X-User-Role: Роль пользователя (client, manager, superuser)

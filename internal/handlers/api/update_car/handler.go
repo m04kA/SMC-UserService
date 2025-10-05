@@ -30,6 +30,13 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	role, err := middleware.GetRoleFromContext(r.Context())
+	if err != nil {
+		logger.Warn("PATCH /users/me/cars/{car_id} - Failed to get role: user_id=%d", userID)
+		api.RespondUnauthorized(w, "Unauthorized")
+		return
+	}
+
 	vars := mux.Vars(r)
 	carIDStr := vars["car_id"]
 	if carIDStr == "" {
@@ -52,7 +59,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	car, err := h.service.UpdateCar(r.Context(), userID, carID, input)
+	car, err := h.service.UpdateCar(r.Context(), userID, carID, input, role)
 	if err != nil {
 		if errors.Is(err, userservice.ErrCarNotFound) {
 			logger.Warn("PATCH /users/me/cars/{car_id} - Car not found: user_id=%d, car_id=%d", userID, carID)
@@ -60,7 +67,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if errors.Is(err, userservice.ErrCarAccessDenied) {
-			logger.Warn("PATCH /users/me/cars/{car_id} - Access denied: user_id=%d, car_id=%d", userID, carID)
+			logger.Warn("PATCH /users/me/cars/{car_id} - Access denied: user_id=%d, car_id=%d, role=%s", userID, carID, role)
 			api.RespondCarAccessDenied(w)
 			return
 		}
@@ -69,6 +76,6 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger.Info("PATCH /users/me/cars/{car_id} - Car updated successfully: user_id=%d, car_id=%d", userID, carID)
+	logger.Info("PATCH /users/me/cars/{car_id} - Car updated successfully: user_id=%d, car_id=%d, role=%s", userID, carID, role)
 	api.RespondJSON(w, http.StatusOK, car)
 }

@@ -29,6 +29,13 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	role, err := middleware.GetRoleFromContext(r.Context())
+	if err != nil {
+		logger.Warn("DELETE /users/me/cars/{car_id} - Failed to get role: user_id=%d", userID)
+		api.RespondUnauthorized(w, "Unauthorized")
+		return
+	}
+
 	vars := mux.Vars(r)
 	carIDStr := vars["car_id"]
 	if carIDStr == "" {
@@ -44,7 +51,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.service.DeleteCar(r.Context(), userID, carID)
+	err = h.service.DeleteCar(r.Context(), userID, carID, role)
 	if err != nil {
 		if errors.Is(err, userservice.ErrCarNotFound) {
 			logger.Warn("DELETE /users/me/cars/{car_id} - Car not found: user_id=%d, car_id=%d", userID, carID)
@@ -52,7 +59,7 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if errors.Is(err, userservice.ErrCarAccessDenied) {
-			logger.Warn("DELETE /users/me/cars/{car_id} - Access denied: user_id=%d, car_id=%d", userID, carID)
+			logger.Warn("DELETE /users/me/cars/{car_id} - Access denied: user_id=%d, car_id=%d, role=%s", userID, carID, role)
 			api.RespondCarAccessDenied(w)
 			return
 		}
@@ -61,6 +68,6 @@ func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logger.Info("DELETE /users/me/cars/{car_id} - Car deleted successfully: user_id=%d, car_id=%d", userID, carID)
+	logger.Info("DELETE /users/me/cars/{car_id} - Car deleted successfully: user_id=%d, car_id=%d, role=%s", userID, carID, role)
 	w.WriteHeader(http.StatusNoContent)
 }
