@@ -12,7 +12,6 @@ type Config struct {
 	Logs     LogsConfig     `toml:"logs"`
 	Server   ServerConfig   `toml:"server"`
 	Database DatabaseConfig `toml:"database"`
-	JWT      JWTConfig      `toml:"jwt"`
 }
 
 type LogsConfig struct {
@@ -30,10 +29,6 @@ type DatabaseConfig struct {
 	Password string `toml:"password"`
 	DBName   string `toml:"dbname"`
 	SSLMode  string `toml:"sslmode"`
-}
-
-type JWTConfig struct {
-	Secret string `toml:"secret"`
 }
 
 func Load(path string) (*Config, error) {

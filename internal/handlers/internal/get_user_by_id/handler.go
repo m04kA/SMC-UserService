@@ -1,0 +1,51 @@
+package get_user_by_id
+
+import (
+	"errors"
+	"net/http"
+	"strconv"
+
+	"github.com/gorilla/mux"
+
+	"github.com/m04kA/SMK-UserService/internal/handlers/api"
+	"github.com/m04kA/SMK-UserService/internal/service/user"
+	"github.com/m04kA/SMK-UserService/pkg/logger"
+)
+
+type Handler struct {
+	service user.Service
+}
+
+func NewHandler(service user.Service) *Handler {
+	return &Handler{service: service}
+}
+
+func (h *Handler) Handle(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	userIDStr := vars["tg_user_id"]
+
+	// Парсим tg_user_id из URL
+	tgUserID, err := strconv.ParseInt(userIDStr, 10, 64)
+	if err != nil {
+		logger.Warn("GET /internal/users/{tg_user_id} - invalid user ID format: %s", userIDStr)
+		api.RespondError(w, "invalid user ID format", http.StatusBadRequest)
+		return
+	}
+
+	// Получаем пользователя с автомобилями
+	userWithCars, err := h.service.GetUserWithCars(r.Context(), tgUserID)
+	if err != nil {
+		if errors.Is(err, user.ErrUserNotFound) {
+			logger.Warn("GET /internal/users/%d - user not found", tgUserID)
+			api.RespondError(w, "user not found", http.StatusNotFound)
+			return
+		}
+
+		logger.Error("GET /internal/users/%d - failed to get user: %v", tgUserID, err)
+		api.RespondError(w, "internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	logger.Info("GET /internal/users/%d - success", tgUserID)
+	api.RespondJSON(w, userWithCars, http.StatusOK)
+}

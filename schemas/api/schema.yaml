@@ -8,6 +8,40 @@ servers:
     description: Production Server
 
 paths:
+  /internal/users/{tg_user_id}:
+    get:
+      tags: [Internal]
+      summary: "Получение пользователя по ID (межсервисное взаимодействие)"
+      description: "Endpoint для получения данных пользователя другими сервисами по его Telegram user ID."
+      parameters:
+        - name: tg_user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: "Telegram user ID пользователя."
+          example: 123456789
+      responses:
+        '200':
+          description: "Успешный ответ с данными пользователя и его автомобилями."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserWithCars'
+        '400':
+          description: "Некорректный формат user ID."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: "Пользователь не найден."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /users:
     post:
       tags: [Users]
@@ -39,7 +73,7 @@ paths:
       tags: [Users]
       summary: "Получение данных текущего пользователя"
       security:
-        - BearerAuth: []
+        - UserIdAuth: []
       responses:
         '200':
           description: "Успешный ответ с данными пользователя."
@@ -56,7 +90,7 @@ paths:
       tags: [Users]
       summary: "Полное обновление профиля текущего пользователя"
       security:
-        - BearerAuth: []
+        - UserIdAuth: []
       requestBody:
         required: true
         content:
@@ -82,7 +116,7 @@ paths:
       summary: "Удаление профиля текущего пользователя"
       description: "Рекомендуется использовать 'soft delete' на бэкенде."
       security:
-        - BearerAuth: []
+        - UserIdAuth: []
       responses:
         '204':
           description: "Пользователь успешно удален."
@@ -121,7 +155,7 @@ paths:
       tags: [Cars]
       summary: "Добавление автомобиля текущему пользователю"
       security:
-        - BearerAuth: []
+        - UserIdAuth: []
       requestBody:
         required: true
         content:
@@ -147,7 +181,7 @@ paths:
       tags: [Cars]
       summary: "Частичное обновление данных автомобиля"
       security:
-        - BearerAuth: []
+        - UserIdAuth: []
       parameters:
         - name: car_id
           in: path
@@ -182,7 +216,7 @@ paths:
       tags: [Cars]
       summary: "Удаление автомобиля пользователя"
       security:
-        - BearerAuth: []
+        - UserIdAuth: []
       parameters:
         - name: car_id
           in: path
@@ -368,8 +402,8 @@ components:
           example: "Validation failed."
 
   securitySchemes:
-    BearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: "JWT токен, полученный после аутентификации пользователя через Telegram."
+    UserIdAuth:
+      type: apiKey
+      in: header
+      name: X-User-ID
+      description: "Telegram user ID пользователя для упрощенной аутентификации (MVP)."

@@ -23,6 +23,7 @@ import (
 	"github.com/m04kA/SMK-UserService/internal/handlers/api/get_current_user"
 	"github.com/m04kA/SMK-UserService/internal/handlers/api/update_car"
 	"github.com/m04kA/SMK-UserService/internal/handlers/api/update_current_user"
+	"github.com/m04kA/SMK-UserService/internal/handlers/internal/get_user_by_id"
 	"github.com/m04kA/SMK-UserService/internal/handlers/middleware"
 	carrepo "github.com/m04kA/SMK-UserService/internal/infra/storage/car"
 	userrepo "github.com/m04kA/SMK-UserService/internal/infra/storage/user"
@@ -74,9 +75,7 @@ func main() {
 	createCarHandler := create_car.NewHandler(service)
 	updateCarHandler := update_car.NewHandler(service)
 	deleteCarHandler := delete_car.NewHandler(service)
-
-	// Инициализируем middleware
-	authMiddleware := middleware.NewAuthMiddleware(cfg.JWT.Secret)
+	getUserByIDHandler := get_user_by_id.NewHandler(service)
 
 	// Настраиваем роутер
 	r := mux.NewRouter()
@@ -90,9 +89,12 @@ func main() {
 	// Public routes
 	r.HandleFunc("/users", createUserHandler.Handle).Methods(http.MethodPost)
 
-	// Protected routes
+	// Internal routes (для межсервисного взаимодействия)
+	r.HandleFunc("/internal/users/{tg_user_id}", getUserByIDHandler.Handle).Methods(http.MethodGet)
+
+	// Protected routes (требуют заголовок X-User-ID)
 	protected := r.PathPrefix("").Subrouter()
-	protected.Use(authMiddleware.JWTAuth)
+	protected.Use(middleware.UserIDAuth)
 
 	protected.HandleFunc("/users/me", getCurrentUserHandler.Handle).Methods(http.MethodGet)
 	protected.HandleFunc("/users/me", updateCurrentUserHandler.Handle).Methods(http.MethodPut)
