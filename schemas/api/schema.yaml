@@ -1,7 +1,26 @@
 openapi: 3.1.0
 info:
   title: "UserService API"
-  description: "API для управления пользователями и их автомобилями в приложении для автомойки."
+  description: |
+    API для управления пользователями и их автомобилями в приложении для автомойки.
+
+    ## Аутентификация
+
+    ⚠️ **ВАЖНО**: Для работы защищённых endpoints необходимо передавать **ОБА заголовка**:
+    - **X-User-ID**: Telegram user ID пользователя (integer)
+    - **X-User-Role**: Роль пользователя (client | manager | superuser)
+
+    ### Пример использования:
+    ```bash
+    curl -X GET https://api.carwash.app/v1/users/me \
+      -H "X-User-ID: 123456789" \
+      -H "X-User-Role: client"
+    ```
+
+    ### Роли пользователей:
+    - **client** - клиент автомойки (доступ только к своим данным)
+    - **manager** - менеджер автомойки (доступ к своим данным + управление компанией)
+    - **superuser** - администратор системы (полный доступ ко всем данным)
   version: "1.0.0"
 servers:
   - url: https://api.carwash.app/v1
@@ -74,6 +93,7 @@ paths:
       summary: "Получение данных текущего пользователя"
       security:
         - UserIdAuth: []
+        - UserRoleAuth: []
       responses:
         '200':
           description: "Успешный ответ с данными пользователя."
@@ -91,6 +111,7 @@ paths:
       summary: "Полное обновление профиля текущего пользователя"
       security:
         - UserIdAuth: []
+        - UserRoleAuth: []
       requestBody:
         required: true
         content:
@@ -117,6 +138,7 @@ paths:
       description: "Рекомендуется использовать 'soft delete' на бэкенде."
       security:
         - UserIdAuth: []
+        - UserRoleAuth: []
       responses:
         '204':
           description: "Пользователь успешно удален."
@@ -156,6 +178,7 @@ paths:
       summary: "Добавление автомобиля текущему пользователю"
       security:
         - UserIdAuth: []
+        - UserRoleAuth: []
       requestBody:
         required: true
         content:
@@ -182,6 +205,7 @@ paths:
       summary: "Частичное обновление данных автомобиля"
       security:
         - UserIdAuth: []
+        - UserRoleAuth: []
       parameters:
         - name: car_id
           in: path
@@ -217,6 +241,7 @@ paths:
       summary: "Удаление автомобиля пользователя"
       security:
         - UserIdAuth: []
+        - UserRoleAuth: []
       parameters:
         - name: car_id
           in: path
@@ -238,6 +263,7 @@ paths:
       description: "Возвращает автомобиль, который в данный момент выбран у пользователя."
       security:
         - UserIdAuth: []
+        - UserRoleAuth: []
       responses:
         '200':
           description: "Выбранный автомобиль успешно получен."
@@ -261,6 +287,7 @@ paths:
       description: "Устанавливает указанный автомобиль как текущий выбранный. Предыдущий выбранный автомобиль автоматически снимается с выбора."
       security:
         - UserIdAuth: []
+        - UserRoleAuth: []
       parameters:
         - name: car_id
           in: path
@@ -489,6 +516,26 @@ components:
       in: header
       name: X-User-ID
       description: |
-        Упрощенная аутентификация (MVP). Требуется передавать два заголовка:
-        - X-User-ID: Telegram user ID пользователя
-        - X-User-Role: Роль пользователя (client, manager, superuser)
+        Упрощенная аутентификация (MVP).
+
+        ⚠️ ВАЖНО: Для работы защищённых endpoints необходимо передавать ОБА заголовка:
+        - **X-User-ID**: Telegram user ID пользователя (integer)
+        - **X-User-Role**: Роль пользователя (client | manager | superuser)
+
+        Пример:
+        ```
+        X-User-ID: 123456789
+        X-User-Role: client
+        ```
+
+    UserRoleAuth:
+      type: apiKey
+      in: header
+      name: X-User-Role
+      description: |
+        Роль пользователя для проверки прав доступа.
+
+        Возможные значения:
+        - **client** - клиент автомойки (доступ только к своим данным)
+        - **manager** - менеджер автомойки (доступ к своим данным + управление компанией)
+        - **superuser** - администратор (полный доступ ко всем данным)
