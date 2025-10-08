@@ -158,6 +158,7 @@ func (s *Service) GetUserWithCars(ctx context.Context, tgID int64) (*models.User
 			LicensePlate: car.LicensePlate,
 			Color:        car.Color,
 			Size:         car.Size,
+			IsSelected:   car.IsSelected,
 		})
 	}
 
@@ -198,6 +199,15 @@ func (s *Service) CreateCar(ctx context.Context, tgID int64, input models.Create
 		return nil, fmt.Errorf("%w: %v", ErrServiceGetUser, err)
 	}
 
+	// Проверяем, есть ли уже автомобили у пользователя
+	existingCars, err := s.carRepo.GetByUserID(ctx, tgID)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrServiceGetCar, err)
+	}
+
+	// Если это первый автомобиль, он автоматически становится выбранным
+	isSelected := len(existingCars) == 0
+
 	car := &domain.Car{
 		UserID:       tgID,
 		Brand:        input.Brand,
@@ -205,6 +215,7 @@ func (s *Service) CreateCar(ctx context.Context, tgID int64, input models.Create
 		LicensePlate: input.LicensePlate,
 		Color:        input.Color,
 		Size:         input.Size,
+		IsSelected:   isSelected,
 	}
 
 	createdCar, err := s.carRepo.Create(ctx, car)
@@ -220,6 +231,7 @@ func (s *Service) CreateCar(ctx context.Context, tgID int64, input models.Create
 		LicensePlate: createdCar.LicensePlate,
 		Color:        createdCar.Color,
 		Size:         createdCar.Size,
+		IsSelected:   createdCar.IsSelected,
 	}
 
 	return response, nil
@@ -269,6 +281,7 @@ func (s *Service) UpdateCar(ctx context.Context, tgID int64, carID int64, input 
 		LicensePlate: car.LicensePlate,
 		Color:        car.Color,
 		Size:         car.Size,
+		IsSelected:   car.IsSelected,
 	}
 
 	return response, nil
@@ -289,10 +302,106 @@ func (s *Service) DeleteCar(ctx context.Context, tgID int64, carID int64, role d
 		return ErrCarAccessDenied
 	}
 
+	wasSelected := car.IsSelected
+
 	err = s.carRepo.Delete(ctx, carID)
 	if err != nil {
 		return fmt.Errorf("%w: %v", ErrServiceDeleteCar, err)
 	}
 
+	// Если удалили выбранный автомобиль, выбираем первый из оставшихся
+	if wasSelected {
+		remainingCars, err := s.carRepo.GetByUserID(ctx, car.UserID)
+		if err != nil {
+			return fmt.Errorf("%w: %v", ErrServiceGetCar, err)
+		}
+
+		if len(remainingCars) > 0 {
+			remainingCars[0].IsSelected = true
+			if err := s.carRepo.Update(ctx, remainingCars[0]); err != nil {
+				return fmt.Errorf("%w: %v", ErrServiceUpdateCar, err)
+			}
+		}
+	}
+
 	return nil
+}
+
+// GetSelectedCar получает текущий выбранный автомобиль пользователя
+func (s *Service) GetSelectedCar(ctx context.Context, tgID int64) (*models.CarDTO, error) {
+	car, err := s.carRepo.GetSelectedByUserID(ctx, tgID)
+	if err != nil {
+		if errors.Is(err, ErrCarNotFound) {
+			return nil, err
+		}
+		return nil, fmt.Errorf("%w: %v", ErrServiceGetCar, err)
+	}
+
+	response := &models.CarDTO{
+		ID:           car.ID,
+		UserID:       car.UserID,
+		Brand:        car.Brand,
+		Model:        car.Model,
+		LicensePlate: car.LicensePlate,
+		Color:        car.Color,
+		Size:         car.Size,
+		IsSelected:   car.IsSelected,
+	}
+
+	return response, nil
+}
+
+// SetSelectedCar устанавливает автомобиль как выбранный
+func (s *Service) SetSelectedCar(ctx context.Context, tgID int64, carID int64, role domain.Role) (*models.CarDTO, error) {
+	car, err := s.carRepo.GetByID(ctx, carID)
+	if err != nil {
+		if errors.Is(err, ErrCarNotFound) {
+			return nil, err
+		}
+		return nil, fmt.Errorf("%w: %v", ErrServiceGetCar, err)
+	}
+
+	// Проверка доступа
+	if !role.CanModifyUser(car.UserID, tgID) {
+		return nil, ErrCarAccessDenied
+	}
+
+	// Если уже выбран, просто возвращаем
+	if car.IsSelected {
+		response := &models.CarDTO{
+			ID:           car.ID,
+			UserID:       car.UserID,
+			Brand:        car.Brand,
+			Model:        car.Model,
+			LicensePlate: car.LicensePlate,
+			Color:        car.Color,
+			Size:         car.Size,
+			IsSelected:   car.IsSelected,
+		}
+		return response, nil
+	}
+
+	// Сначала снимаем выбор со всех автомобилей пользователя
+	if err := s.carRepo.UnselectAllByUserID(ctx, car.UserID); err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrServiceUpdateCar, err)
+	}
+
+	// Устанавливаем текущий автомобиль как выбранный
+	car.IsSelected = true
+	if err := s.carRepo.Update(ctx, car); err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrServiceUpdateCar, err)
+	}
+
+	response := &models.CarDTO{
+		ID:           car.ID,
+		UserID:       car.UserID,
+		Brand:        car.Brand,
+		Model:        car.Model,
+		LicensePlate: car.LicensePlate,
+		Color:        car.Color,
+		Size:         car.Size,
+		IsSelected:   car.IsSelected,
+	}
+
+	return response, nil
 }

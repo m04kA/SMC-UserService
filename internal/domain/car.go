@@ -8,4 +8,5 @@ type Car struct {
 	LicensePlate string  `json:"license_plate" db:"license_plate" validate:"required"`
 	Color        *string `json:"color,omitempty" db:"color"`
 	Size         *string `json:"size,omitempty" db:"size"`
+	IsSelected   bool    `json:"is_selected" db:"is_selected"`
 }

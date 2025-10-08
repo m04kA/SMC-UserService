@@ -231,6 +231,72 @@ paths:
         '403':
           description: "Доступ запрещен (попытка удалить чужой автомобиль)."
 
+  /users/me/cars/selected:
+    get:
+      tags: [Cars]
+      summary: "Получение текущего выбранного автомобиля"
+      description: "Возвращает автомобиль, который в данный момент выбран у пользователя."
+      security:
+        - UserIdAuth: []
+      responses:
+        '200':
+          description: "Выбранный автомобиль успешно получен."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Car'
+        '401':
+          description: "Пользователь не аутентифицирован."
+        '404':
+          description: "У пользователя нет выбранного автомобиля."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/me/cars/{car_id}/select:
+    put:
+      tags: [Cars]
+      summary: "Установка автомобиля как выбранного"
+      description: "Устанавливает указанный автомобиль как текущий выбранный. Предыдущий выбранный автомобиль автоматически снимается с выбора."
+      security:
+        - UserIdAuth: []
+      parameters:
+        - name: car_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: "ID автомобиля для установки как выбранного."
+      responses:
+        '200':
+          description: "Автомобиль успешно установлен как выбранный."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Car'
+        '400':
+          description: "Некорректный ID автомобиля."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: "Пользователь не аутентифицирован."
+        '403':
+          description: "Доступ запрещен (попытка выбрать чужой автомобиль)."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: "Автомобиль не найден."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
 components:
   schemas:
     # --- МОДЕЛИ ДАННЫХ ---
@@ -297,8 +363,12 @@ components:
           example: "Черный"
         size:
           type: string
-          description: "Размер/класс автомобиля (для расчета цены)."
-          example: "suv_large"
+          description: "Класс автомобиля согласно европейской системе классов (A — мини-автомобили, B — малые, C — средние (гольф-класс), D — большие средние, E — бизнес-класс, F — люксовые, J — внедорожники, M — минивэны, S — спорткары). Используется для расчета цены."
+          example: "E"
+        is_selected:
+          type: boolean
+          description: "Флаг, указывающий, является ли данный автомобиль выбранным (текущим) для пользователя."
+          example: true
 
     UserWithCars:
       type: object
@@ -377,8 +447,8 @@ components:
           example: "Синий"
         size:
           type: string
-          description: "Опционально, может быть получен из VehicleCatalogService по бренду/модели."
-          example: "suv_large"
+          description: "Класс автомобиля согласно европейской системе классов (A — мини-автомобили, B — малые, C — средние (гольф-класс), D — большие средние, E — бизнес-класс, F — люксовые, J — внедорожники, M — минивэны, S — спорткары). Опционально, может быть получен из VehicleCatalogService по бренду/модели."
+          example: "J"
 
     UpdateCarInput:
       type: object
@@ -398,7 +468,8 @@ components:
           example: "Белый"
         size:
           type: string
-          example: "suv_large"
+          description: "Класс автомобиля согласно европейской системе классов (A, B, C, D, E, F, J, M, S)."
+          example: "C"
 
     Error:
       type: object

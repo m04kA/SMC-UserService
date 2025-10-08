@@ -27,6 +27,8 @@ type CarRepository interface {
 	Create(ctx context.Context, car *domain.Car) (*domain.Car, error)
 	GetByID(ctx context.Context, carID int64) (*domain.Car, error)
 	GetByUserID(ctx context.Context, userID int64) ([]*domain.Car, error)
+	GetSelectedByUserID(ctx context.Context, userID int64) (*domain.Car, error)
 	Update(ctx context.Context, car *domain.Car) error
 	Delete(ctx context.Context, carID int64) error
+	UnselectAllByUserID(ctx context.Context, userID int64) error
 }

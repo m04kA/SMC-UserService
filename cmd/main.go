@@ -21,7 +21,9 @@ import (
 	"github.com/m04kA/SMK-UserService/internal/handlers/api/delete_car"
 	"github.com/m04kA/SMK-UserService/internal/handlers/api/delete_current_user"
 	"github.com/m04kA/SMK-UserService/internal/handlers/api/get_current_user"
+	"github.com/m04kA/SMK-UserService/internal/handlers/api/get_selected_car"
 	"github.com/m04kA/SMK-UserService/internal/handlers/api/get_user_by_id"
+	"github.com/m04kA/SMK-UserService/internal/handlers/api/select_car"
 	"github.com/m04kA/SMK-UserService/internal/handlers/api/update_car"
 	"github.com/m04kA/SMK-UserService/internal/handlers/api/update_current_user"
 	"github.com/m04kA/SMK-UserService/internal/handlers/middleware"
@@ -75,6 +77,8 @@ func main() {
 	createCarHandler := create_car.NewHandler(service)
 	updateCarHandler := update_car.NewHandler(service)
 	deleteCarHandler := delete_car.NewHandler(service)
+	getSelectedCarHandler := get_selected_car.NewHandler(service)
+	selectCarHandler := select_car.NewHandler(service)
 	getUserByIDHandler := get_user_by_id.NewHandler(service)
 
 	// Настраиваем роутер
@@ -101,8 +105,10 @@ func main() {
 	protected.HandleFunc("/users/me", deleteCurrentUserHandler.Handle).Methods(http.MethodDelete)
 
 	protected.HandleFunc("/users/me/cars", createCarHandler.Handle).Methods(http.MethodPost)
+	protected.HandleFunc("/users/me/cars/selected", getSelectedCarHandler.Handle).Methods(http.MethodGet)
 	protected.HandleFunc("/users/me/cars/{car_id}", updateCarHandler.Handle).Methods(http.MethodPatch)
 	protected.HandleFunc("/users/me/cars/{car_id}", deleteCarHandler.Handle).Methods(http.MethodDelete)
+	protected.HandleFunc("/users/me/cars/{car_id}/select", selectCarHandler.Handle).Methods(http.MethodPut)
 
 	// Создаем HTTP сервер
 	addr := fmt.Sprintf(":%d", cfg.Server.HTTPPort)

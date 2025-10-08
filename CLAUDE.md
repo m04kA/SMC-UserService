@@ -98,6 +98,7 @@ make clean-all
      - TGLink и все nullable поля используют указатели
    - `car.go` - доменная модель Car с db тегами для sqlx
      - Car.ID использует int64 (BIGSERIAL в БД)
+     - IsSelected (bool) - флаг выбранного автомобиля
    - `role.go` - ролевая модель и проверки прав доступа
      - Роли: client, manager, superuser
      - Методы: CanAccessUser(), CanModifyUser()
@@ -105,7 +106,11 @@ make clean-all
 2. **Service Layer** (`internal/service/user/`)
    - `user_service.go` - полная бизнес-логика для User и Car
      - User: CreateUser, UpdateUser, DeleteUser, GetUserByID, GetUserWithCars
-     - Car: CreateCar, UpdateCar (PATCH + role), DeleteCar (role)
+     - Car: CreateCar, UpdateCar (PATCH + role), DeleteCar (role), GetSelectedCar, SetSelectedCar
+     - Логика выбранного автомобиля:
+       - Первый созданный автомобиль автоматически становится выбранным
+       - При удалении выбранного автомобиля первый из оставшихся становится выбранным
+       - Только один автомобиль может быть выбран одновременно
      - Все методы для Car принимают параметр role для проверки прав доступа
      - Проверка прав доступа на основе ролей (role.CanModifyUser)
      - Обработка ошибок с wrapping через fmt.Errorf
@@ -119,18 +124,22 @@ make clean-all
      - JOIN с таблицей roles для получения имени роли
      - Create/GetByTGID/Update/Delete с поддержкой role_id
    - `car/repository.go` - CarRepository с обработкой ошибок
+     - GetSelectedByUserID - получение выбранного автомобиля
+     - UnselectAllByUserID - снятие выбора со всех автомобилей пользователя
    - Используют psqlbuilder для построения SQL запросов
    - Все методы имеют собственные кастомные ошибки (ErrCreateUser, ErrGetUser, etc.)
 
 4. **Handlers Layer** (`internal/handlers/`)
    - `api/helpers.go` - утилиты (RespondJSON, RespondError, DecodeJSON и специфичные ошибки)
    - `api/create_user/handler.go` - POST /users
-   - `api/get_current_user/handler.go` - GET /users/me (возвращает UserWithCars)
+   - `api/get_current_user/handler.go` - GET /users/me (возвращает UserWithCars с is_selected)
    - `api/update_current_user/handler.go` - PUT /users/me
    - `api/delete_current_user/handler.go` - DELETE /users/me
-   - `api/create_car/handler.go` - POST /users/me/cars
+   - `api/create_car/handler.go` - POST /users/me/cars (первый автомобиль автоматически выбирается)
    - `api/update_car/handler.go` - PATCH /users/me/cars/{car_id} (извлекает role из context и передаёт в сервис)
    - `api/delete_car/handler.go` - DELETE /users/me/cars/{car_id} (извлекает role из context и передаёт в сервис)
+   - `api/get_selected_car/handler.go` - GET /users/me/cars/selected (получение текущего выбранного автомобиля)
+   - `api/select_car/handler.go` - PUT /users/me/cars/{car_id}/select (установка автомобиля как выбранного)
    - `api/get_user_by_id/handler.go` - GET /internal/users/{tg_user_id} (межсервисное взаимодействие)
    - `middleware/auth.go` - упрощённая аутентификация через X-User-ID и X-User-Role
      - Функции: UserIDAuth, GetUserIDFromContext, GetRoleFromContext, RequireSuperUser
@@ -206,7 +215,10 @@ Dashboard "SMK UserService - HTTP Metrics" включает:
   - user_id BIGINT FK → users(tg_user_id) ON DELETE CASCADE
   - brand, model, license_plate (required)
   - color, size (nullable)
+    - size - класс автомобиля согласно европейской системе классов: A (мини), B (малые), C (средние/гольф-класс), D (большие средние), E (бизнес-класс), F (люксовые), J (внедорожники), M (минивэны), S (спорткары)
+  - is_selected BOOLEAN NOT NULL DEFAULT false - флаг выбранного автомобиля
   - Indexes на user_id и license_plate
+  - Уникальный индекс idx_cars_user_selected (user_id) WHERE is_selected = true - гарантирует только один выбранный автомобиль у пользователя
 
 ### Important Utilities
 
@@ -225,12 +237,14 @@ API реализует OpenAPI спецификацию из `schemas/api/schema
 - `GET /internal/users/{tg_user_id}` - получение пользователя с автомобилями по ID
 
 ### Protected Endpoints (требуют X-User-ID и X-User-Role)
-- `GET /users/me` - получение пользователя с автомобилями
+- `GET /users/me` - получение пользователя с автомобилями (включает is_selected для каждого автомобиля)
 - `PUT /users/me` - обновление профиля
 - `DELETE /users/me` - удаление профиля
-- `POST /users/me/cars` - добавление автомобиля
+- `POST /users/me/cars` - добавление автомобиля (первый автомобиль автоматически становится выбранным)
 - `PATCH /users/me/cars/{car_id}` - частичное обновление автомобиля
-- `DELETE /users/me/cars/{car_id}` - удаление автомобиля
+- `DELETE /users/me/cars/{car_id}` - удаление автомобиля (при удалении выбранного, первый из оставшихся становится выбранным)
+- `GET /users/me/cars/selected` - получение текущего выбранного автомобиля
+- `PUT /users/me/cars/{car_id}/select` - установка автомобиля как выбранного (предыдущий автоматически снимается с выбора)
 
 ### Monitoring Endpoints
 - `GET /metrics` - Prometheus метрики в формате OpenMetrics

@@ -67,4 +67,5 @@ type CarDTO struct {
 	LicensePlate string  `json:"license_plate"`
 	Color        *string `json:"color,omitempty"`
 	Size         *string `json:"size,omitempty"`
+	IsSelected   bool    `json:"is_selected"`
 }
