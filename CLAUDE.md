@@ -138,9 +138,9 @@ make clean-all
    - `api/create_car/handler.go` - POST /users/me/cars (первый автомобиль автоматически выбирается)
    - `api/update_car/handler.go` - PATCH /users/me/cars/{car_id} (извлекает role из context и передаёт в сервис)
    - `api/delete_car/handler.go` - DELETE /users/me/cars/{car_id} (извлекает role из context и передаёт в сервис)
-   - `api/get_selected_car/handler.go` - GET /users/me/cars/selected (получение текущего выбранного автомобиля)
    - `api/select_car/handler.go` - PUT /users/me/cars/{car_id}/select (установка автомобиля как выбранного)
    - `api/get_user_by_id/handler.go` - GET /internal/users/{tg_user_id} (межсервисное взаимодействие)
+   - `api/get_selected_car/handler.go` - GET /internal/users/{tg_user_id}/cars/selected (межсервисное взаимодействие, получение выбранного автомобиля по user_id)
    - `middleware/auth.go` - упрощённая аутентификация через X-User-ID и X-User-Role
      - Функции: UserIDAuth, GetUserIDFromContext, GetRoleFromContext, RequireSuperUser
    - `middleware/metrics.go` - Prometheus метрики middleware
@@ -235,6 +235,7 @@ API реализует OpenAPI спецификацию из `schemas/api/schema
 
 ### Internal Endpoints (для межсервисного взаимодействия)
 - `GET /internal/users/{tg_user_id}` - получение пользователя с автомобилями по ID
+- `GET /internal/users/{tg_user_id}/cars/selected` - получение текущего выбранного автомобиля пользователя по его ID
 
 ### Protected Endpoints (требуют X-User-ID и X-User-Role)
 - `GET /users/me` - получение пользователя с автомобилями (включает is_selected для каждого автомобиля)
@@ -243,7 +244,6 @@ API реализует OpenAPI спецификацию из `schemas/api/schema
 - `POST /users/me/cars` - добавление автомобиля (первый автомобиль автоматически становится выбранным)
 - `PATCH /users/me/cars/{car_id}` - частичное обновление автомобиля
 - `DELETE /users/me/cars/{car_id}` - удаление автомобиля (при удалении выбранного, первый из оставшихся становится выбранным)
-- `GET /users/me/cars/selected` - получение текущего выбранного автомобиля
 - `PUT /users/me/cars/{car_id}/select` - установка автомобиля как выбранного (предыдущий автоматически снимается с выбора)
 
 ### Monitoring Endpoints

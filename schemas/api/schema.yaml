@@ -61,6 +61,40 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
+  /internal/users/{tg_user_id}/cars/selected:
+    get:
+      tags: [Internal]
+      summary: "Получение выбранного автомобиля пользователя (межсервисное взаимодействие)"
+      description: "Endpoint для получения текущего выбранного автомобиля пользователя другими сервисами."
+      parameters:
+        - name: tg_user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          description: "Telegram user ID пользователя."
+          example: 123456789
+      responses:
+        '200':
+          description: "Успешный ответ с данными выбранного автомобиля."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Car'
+        '400':
+          description: "Некорректный формат user ID."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: "У пользователя нет выбранного автомобиля."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /users:
     post:
       tags: [Users]
@@ -255,30 +289,6 @@ paths:
           description: "Автомобиль успешно удален."
         '403':
           description: "Доступ запрещен (попытка удалить чужой автомобиль)."
-
-  /users/me/cars/selected:
-    get:
-      tags: [Cars]
-      summary: "Получение текущего выбранного автомобиля"
-      description: "Возвращает автомобиль, который в данный момент выбран у пользователя."
-      security:
-        - UserIdAuth: []
-        - UserRoleAuth: []
-      responses:
-        '200':
-          description: "Выбранный автомобиль успешно получен."
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Car'
-        '401':
-          description: "Пользователь не аутентифицирован."
-        '404':
-          description: "У пользователя нет выбранного автомобиля."
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
 
   /users/me/cars/{car_id}/select:
     put:

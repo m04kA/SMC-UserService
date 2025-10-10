@@ -95,6 +95,7 @@ func main() {
 
 	// Internal routes (для межсервисного взаимодействия)
 	r.HandleFunc("/internal/users/{tg_user_id}", getUserByIDHandler.Handle).Methods(http.MethodGet)
+	r.HandleFunc("/internal/users/{tg_user_id}/cars/selected", getSelectedCarHandler.Handle).Methods(http.MethodGet)
 
 	// Protected routes (требуют заголовок X-User-ID)
 	protected := r.PathPrefix("").Subrouter()
@@ -105,7 +106,6 @@ func main() {
 	protected.HandleFunc("/users/me", deleteCurrentUserHandler.Handle).Methods(http.MethodDelete)
 
 	protected.HandleFunc("/users/me/cars", createCarHandler.Handle).Methods(http.MethodPost)
-	protected.HandleFunc("/users/me/cars/selected", getSelectedCarHandler.Handle).Methods(http.MethodGet)
 	protected.HandleFunc("/users/me/cars/{car_id}", updateCarHandler.Handle).Methods(http.MethodPatch)
 	protected.HandleFunc("/users/me/cars/{car_id}", deleteCarHandler.Handle).Methods(http.MethodDelete)
 	protected.HandleFunc("/users/me/cars/{car_id}/select", selectCarHandler.Handle).Methods(http.MethodPut)

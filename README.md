@@ -74,11 +74,9 @@ curl -X GET http://localhost:8080/users/me \
 curl -X GET http://localhost:8080/internal/users/123456789
 ```
 
-#### Получение выбранного автомобиля
+#### Получение выбранного автомобиля (межсервисное взаимодействие)
 ```bash
-curl -X GET http://localhost:8080/users/me/cars/selected \
-  -H "X-User-ID: 123456789" \
-  -H "X-User-Role: client"
+curl -X GET http://localhost:8080/internal/users/123456789/cars/selected
 ```
 
 #### Установка автомобиля как выбранного
@@ -95,6 +93,7 @@ curl -X PUT http://localhost:8080/users/me/cars/2/select \
 
 ### Internal (межсервисное взаимодействие)
 - `GET /internal/users/{tg_user_id}` - получение пользователя с автомобилями по ID
+- `GET /internal/users/{tg_user_id}/cars/selected` - получение текущего выбранного автомобиля пользователя по его ID
 
 ### Protected (требуют заголовки X-User-ID и X-User-Role)
 
@@ -107,9 +106,6 @@ curl -X PUT http://localhost:8080/users/me/cars/2/select \
 - `POST /users/me/cars` - добавление автомобиля (первый автомобиль автоматически становится выбранным)
 - `PATCH /users/me/cars/{car_id}` - обновление автомобиля (car_id: int64)
 - `DELETE /users/me/cars/{car_id}` - удаление автомобиля (car_id: int64, при удалении выбранного, первый из оставшихся становится выбранным)
-
-#### Выбранный автомобиль
-- `GET /users/me/cars/selected` - получение текущего выбранного автомобиля
 - `PUT /users/me/cars/{car_id}/select` - установка автомобиля как выбранного
 
 **Логика выбранного автомобиля:**
