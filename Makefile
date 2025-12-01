@@ -47,6 +47,7 @@ clean:
 	@echo "Cleaning build artifacts and logs..."
 	@rm -rf bin/
 	@rm -rf logs/*.log
+	@rm -rf docker/
 	@echo "Clean complete"
 
 clean-all: clean docker-clean docker-prune

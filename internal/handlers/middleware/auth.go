@@ -37,21 +37,30 @@ func UserIDAuth(next http.Handler) http.Handler {
 			http.Error(w, ErrInvalidUserID.Error(), http.StatusBadRequest)
 			return
 		}
-
+		ctx := r.Context()
 		roleStr := r.Header.Get("X-User-Role")
-		if roleStr == "" {
-			http.Error(w, ErrMissingRole.Error(), http.StatusUnauthorized)
-			return
+		if roleStr != "" {
+			role := domain.Role(roleStr)
+			if !role.IsValid() {
+				http.Error(w, ErrInvalidRole.Error(), http.StatusBadRequest)
+				return
+			}
+			ctx = context.WithValue(ctx, RoleKey, role)
 		}
 
-		role := domain.Role(roleStr)
-		if !role.IsValid() {
-			http.Error(w, ErrInvalidRole.Error(), http.StatusBadRequest)
-			return
-		}
+		// if roleStr == "" {
+		// 	http.Error(w, ErrMissingRole.Error(), http.StatusUnauthorized)
+		// 	return
+		// }
 
-		ctx := context.WithValue(r.Context(), UserIDKey, userID)
-		ctx = context.WithValue(ctx, RoleKey, role)
+		// role := domain.Role(roleStr)
+		// if !role.IsValid() {
+		// 	http.Error(w, ErrInvalidRole.Error(), http.StatusBadRequest)
+		// 	return
+		// }
+
+		ctx = context.WithValue(ctx, UserIDKey, userID)
+		// ctx = context.WithValue(ctx, RoleKey, role)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
