@@ -1,19 +1,20 @@
 version: '3.8'
+name: smc-userservice
 
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: smk-userservice-db
+    container_name: smc-userservice-db
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: smk_userservice
+      POSTGRES_DB: smc_userservice
     ports:
       - "5435:5432"
     volumes:
       - ./docker/postgres/data:/var/lib/postgresql/data
     networks:
-      - smk-userservice-network
+      - smc-userservice-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -22,17 +23,17 @@ services:
 
   migrate:
     image: migrate/migrate
-    container_name: smk-userservice-migrate
+    container_name: smc-userservice-migrate
     depends_on:
       postgres:
         condition: service_healthy
     volumes:
       - ./migrations:/migrations
     networks:
-      - smk-userservice-network
+      - smc-userservice-network
     command: [
       "-path", "/migrations",
-      "-database", "postgres://postgres:postgres@postgres:5432/smk_userservice?sslmode=disable",
+      "-database", "postgres://postgres:postgres@postgres:5432/smc_userservice?sslmode=disable",
       "up"
     ]
     restart: on-failure
@@ -41,7 +42,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.userService
-    container_name: smk-userservice-app
+    container_name: smc-userservice-app
     ports:
       - "8080:8080"
     environment:
@@ -49,7 +50,7 @@ services:
       - DATABASE_PORT=5432
       - DATABASE_USER=postgres
       - DATABASE_PASSWORD=postgres
-      - DATABASE_NAME=smk_userservice
+      - DATABASE_NAME=smc_userservice
     volumes:
       - ./logs:/root/logs
     depends_on:
@@ -58,12 +59,12 @@ services:
       migrate:
         condition: service_completed_successfully
     networks:
-      - smk-userservice-network
+      - smc-userservice-network
     restart: unless-stopped
 
   prometheus:
     image: prom/prometheus:latest
-    container_name: smk-userservice-prometheus
+    container_name: smc-userservice-prometheus
     ports:
       - "9091:9090"
     volumes:
@@ -73,12 +74,12 @@ services:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
     networks:
-      - smk-userservice-network
+      - smc-userservice-network
     restart: unless-stopped
 
   grafana:
     image: grafana/grafana:latest
-    container_name: smk-userservice-grafana
+    container_name: smc-userservice-grafana
     ports:
       - "3001:3000"
     environment:
@@ -92,9 +93,9 @@ services:
     depends_on:
       - prometheus
     networks:
-      - smk-userservice-network
+      - smc-userservice-network
     restart: unless-stopped
 
 networks:
-  smk-userservice-network:
+  smc-userservice-network:
     driver: bridge

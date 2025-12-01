@@ -15,22 +15,22 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"github.com/m04kA/SMK-UserService/internal/config"
-	"github.com/m04kA/SMK-UserService/internal/handlers/api/create_car"
-	"github.com/m04kA/SMK-UserService/internal/handlers/api/create_user"
-	"github.com/m04kA/SMK-UserService/internal/handlers/api/delete_car"
-	"github.com/m04kA/SMK-UserService/internal/handlers/api/delete_current_user"
-	"github.com/m04kA/SMK-UserService/internal/handlers/api/get_current_user"
-	"github.com/m04kA/SMK-UserService/internal/handlers/api/get_selected_car"
-	"github.com/m04kA/SMK-UserService/internal/handlers/api/get_user_by_id"
-	"github.com/m04kA/SMK-UserService/internal/handlers/api/select_car"
-	"github.com/m04kA/SMK-UserService/internal/handlers/api/update_car"
-	"github.com/m04kA/SMK-UserService/internal/handlers/api/update_current_user"
-	"github.com/m04kA/SMK-UserService/internal/handlers/middleware"
-	carrepo "github.com/m04kA/SMK-UserService/internal/infra/storage/car"
-	userrepo "github.com/m04kA/SMK-UserService/internal/infra/storage/user"
-	userservice "github.com/m04kA/SMK-UserService/internal/service/user"
-	"github.com/m04kA/SMK-UserService/pkg/logger"
+	"github.com/m04kA/SMC-UserService/internal/config"
+	"github.com/m04kA/SMC-UserService/internal/handlers/api/create_car"
+	"github.com/m04kA/SMC-UserService/internal/handlers/api/create_user"
+	"github.com/m04kA/SMC-UserService/internal/handlers/api/delete_car"
+	"github.com/m04kA/SMC-UserService/internal/handlers/api/delete_current_user"
+	"github.com/m04kA/SMC-UserService/internal/handlers/api/get_current_user"
+	"github.com/m04kA/SMC-UserService/internal/handlers/api/get_selected_car"
+	"github.com/m04kA/SMC-UserService/internal/handlers/api/get_user_by_id"
+	"github.com/m04kA/SMC-UserService/internal/handlers/api/select_car"
+	"github.com/m04kA/SMC-UserService/internal/handlers/api/update_car"
+	"github.com/m04kA/SMC-UserService/internal/handlers/api/update_current_user"
+	"github.com/m04kA/SMC-UserService/internal/handlers/middleware"
+	carrepo "github.com/m04kA/SMC-UserService/internal/infra/storage/car"
+	userrepo "github.com/m04kA/SMC-UserService/internal/infra/storage/user"
+	userservice "github.com/m04kA/SMC-UserService/internal/service/user"
+	"github.com/m04kA/SMC-UserService/pkg/logger"
 )
 
 func main() {
@@ -40,7 +40,7 @@ func main() {
 	}
 	defer logger.Close()
 
-	logger.Info("Starting SMK-UserService...")
+	logger.Info("Starting SMC-UserService...")
 
 	// Загружаем конфигурацию
 	cfg, err := config.Load("./config.toml")

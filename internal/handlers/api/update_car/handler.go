@@ -6,11 +6,11 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
-	"github.com/m04kA/SMK-UserService/internal/handlers/api"
-	"github.com/m04kA/SMK-UserService/internal/handlers/middleware"
-	userservice "github.com/m04kA/SMK-UserService/internal/service/user"
-	"github.com/m04kA/SMK-UserService/internal/service/user/models"
-	"github.com/m04kA/SMK-UserService/pkg/logger"
+	"github.com/m04kA/SMC-UserService/internal/handlers/api"
+	"github.com/m04kA/SMC-UserService/internal/handlers/middleware"
+	userservice "github.com/m04kA/SMC-UserService/internal/service/user"
+	"github.com/m04kA/SMC-UserService/internal/service/user/models"
+	"github.com/m04kA/SMC-UserService/pkg/logger"
 )
 
 type Handler struct {

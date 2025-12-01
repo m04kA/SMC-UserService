@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-SMK-UserService - сервис управления пользователями и их автомобилями для приложения автомойки. Использует Clean Architecture с разделением на domain, service, infrastructure и handlers.
+SMC-UserService - сервис управления пользователями и их автомобилями для приложения автомойки. Использует Clean Architecture с разделением на domain, service, infrastructure и handlers.
 
 ### Tech Stack
 - **Language**: Go 1.24+
@@ -78,7 +78,7 @@ make clean-all
 
 ### Database
 - PostgreSQL работает на порту **5435** (не стандартный 5432)
-- Connection string: `host=localhost port=5435 user=postgres password=postgres dbname=smk_userservice sslmode=disable`
+- Connection string: `host=localhost port=5435 user=postgres password=postgres dbname=smc_userservice sslmode=disable`
 - Миграции автоматически применяются при `docker-compose up`
 
 ### Monitoring
@@ -86,7 +86,7 @@ make clean-all
 - **Grafana**: http://localhost:3001 - визуализация метрик
   - Логин: `admin`
   - Пароль: `admin`
-  - Dashboard "SMK UserService - HTTP Metrics" автоматически загружается при старте
+  - Dashboard "SMC UserService - HTTP Metrics" автоматически загружается при старте
 
 ## Architecture
 
@@ -181,7 +181,7 @@ make clean-all
 
 **Grafana Dashboard:**
 
-Dashboard "SMK UserService - HTTP Metrics" включает:
+Dashboard "SMC UserService - HTTP Metrics" включает:
 1. **HTTP Request Rate** - частота запросов в секунду по endpoint'ам
 2. **Requests In Flight** - текущее количество обрабатываемых запросов
 3. **HTTP Request Duration (p95, p99)** - перцентили времени обработки запросов
@@ -258,7 +258,7 @@ X-User-Role: <client|manager|superuser>
 ```
 
 **⚠️ Важно**: Это временное решение для MVP. В продакшене планируется:
-- Отдельный SMK-AuthService для генерации JWT токенов
+- Отдельный SMC-AuthService для генерации JWT токенов
 - Валидация Telegram InitData
 - Refresh token механизм
 - Полноценная JWT аутентификация
@@ -325,7 +325,7 @@ host = "localhost"
 port = 5435  # Не стандартный порт!
 user = "postgres"
 password = "postgres"
-dbname = "smk_userservice"
+dbname = "smc_userservice"
 sslmode = "disable"
 ```
 
@@ -343,7 +343,7 @@ sslmode = "disable"
 ## Project Structure
 
 ```
-SMK-UserService/
+SMC-UserService/
 ├── cmd/
 │   └── main.go                 # Entry point с routing и DI
 ├── internal/

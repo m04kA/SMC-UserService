@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/m04kA/SMK-UserService/internal/domain"
-	"github.com/m04kA/SMK-UserService/internal/service/user/models"
+	"github.com/m04kA/SMC-UserService/internal/domain"
+	"github.com/m04kA/SMC-UserService/internal/service/user/models"
 )
 
 var (

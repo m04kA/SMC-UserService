@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	"github.com/m04kA/SMK-UserService/internal/domain"
+	"github.com/m04kA/SMC-UserService/internal/domain"
 )
 
 // User DTOs

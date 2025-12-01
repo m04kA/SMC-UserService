@@ -6,7 +6,7 @@
 
 ```bash
 # Через docker
-docker exec -i userservice-db psql -U postgres -d smk_userservice < migrations/fixtures/001_test_users.sql
+docker exec -i userservice-db psql -U postgres -d smc_userservice < migrations/fixtures/001_test_users.sql
 
 # Или через Makefile (если есть команда)
 make fixtures
@@ -66,7 +66,7 @@ make fixtures
 
 ```sql
 -- Подключиться к БД
-psql -U postgres -d smk_userservice
+psql -U postgres -d smc_userservice
 
 -- Проверить пользователей
 SELECT tg_user_id, name, phone_number FROM users ORDER BY tg_user_id;
@@ -117,10 +117,10 @@ HAVING COUNT(c.id) = 0;
 
 ```bash
 # Удалить все данные
-psql -U postgres -d smk_userservice << EOF
+psql -U postgres -d smc_userservice << EOF
 TRUNCATE users CASCADE;
 EOF
 
 # Применить фикстуры заново
-docker exec -i userservice-db psql -U postgres -d smk_userservice < migrations/fixtures/001_test_users.sql
+docker exec -i userservice-db psql -U postgres -d smc_userservice < migrations/fixtures/001_test_users.sql
 ```

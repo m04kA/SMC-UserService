@@ -1,7 +1,7 @@
 .PHONY: help build run test clean clean-all docker-build docker-up docker-down docker-restart docker-logs docker-clean docker-prune migrate-up migrate-down db-reset
 
 # Variables
-APP_NAME=smk-userservice
+APP_NAME=smc-userservice
 DOCKER_COMPOSE=docker-compose
 GO=go
 
@@ -92,7 +92,7 @@ docker-clean:
 
 docker-prune:
 	@echo "Removing project Docker images..."
-	@docker images | grep smk-userservice | awk '{print $$3}' | xargs -r docker rmi -f || true
+	@docker images | grep smc-userservice | awk '{print $$3}' | xargs -r docker rmi -f || true
 	@echo "Docker images removed"
 
 # Database commands
@@ -105,7 +105,7 @@ migrate-up:
 
 migrate-down:
 	@echo "Rolling back database migrations..."
-	@$(DOCKER_COMPOSE) run --rm migrate -path /migrations -database "postgres://postgres:postgres@postgres:5432/smk_userservice?sslmode=disable" down
+	@$(DOCKER_COMPOSE) run --rm migrate -path /migrations -database "postgres://postgres:postgres@postgres:5432/smc_userservice?sslmode=disable" down
 	@echo "Migrations rolled back"
 
 db-reset:

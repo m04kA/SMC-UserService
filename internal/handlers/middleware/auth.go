@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/m04kA/SMK-UserService/internal/domain"
+	"github.com/m04kA/SMC-UserService/internal/domain"
 )
 
 type contextKey string

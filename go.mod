@@ -1,4 +1,4 @@
-module github.com/m04kA/SMK-UserService
+module github.com/m04kA/SMC-UserService
 
 go 1.24.2
 

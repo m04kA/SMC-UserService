@@ -432,8 +432,8 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "SMK UserService - HTTP Metrics",
-  "uid": "smk-userservice-http",
+  "title": "SMC UserService - HTTP Metrics",
+  "uid": "smc-userservice-http",
   "version": 1,
   "weekStart": ""
 }

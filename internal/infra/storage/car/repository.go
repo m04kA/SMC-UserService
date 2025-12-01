@@ -8,9 +8,9 @@ import (
 
 	"github.com/Masterminds/squirrel"
 	"github.com/jmoiron/sqlx"
-	"github.com/m04kA/SMK-UserService/internal/domain"
-	userservice "github.com/m04kA/SMK-UserService/internal/service/user"
-	"github.com/m04kA/SMK-UserService/pkg/psqlbuilder"
+	"github.com/m04kA/SMC-UserService/internal/domain"
+	userservice "github.com/m04kA/SMC-UserService/internal/service/user"
+	"github.com/m04kA/SMC-UserService/pkg/psqlbuilder"
 )
 
 var (
