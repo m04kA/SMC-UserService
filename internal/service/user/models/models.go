@@ -11,21 +11,21 @@ import (
 type CreateUserInputDTO struct {
 	TGUserID    int64       `json:"tg_user_id" validate:"required"`
 	Name        string      `json:"name" validate:"required"`
-	PhoneNumber string      `json:"phone_number" validate:"required,e164"`
+	PhoneNumber *string     `json:"phone_number" validate:"omitempty,e164"`
 	TGLink      *string     `json:"tg_link"`
 	Role        domain.Role `json:"role" validate:"required,oneof=client manager superuser"`
 }
 
 type UpdateUserInputDTO struct {
-	Name        string  `json:"name" validate:"required"`
-	PhoneNumber string  `json:"phone_number" validate:"required,e164"`
+	Name        *string `json:"name" validate:"omitempty"`
+	PhoneNumber *string `json:"phone_number" validate:"omitempty,e164"`
 	TGLink      *string `json:"tg_link"`
 }
 
 type UserDTO struct {
 	TGUserID    int64       `json:"tg_user_id"`
 	Name        string      `json:"name"`
-	PhoneNumber string      `json:"phone_number"`
+	PhoneNumber *string     `json:"phone_number,omitempty"`
 	TGLink      *string     `json:"tg_link,omitempty"`
 	Role        domain.Role `json:"role"`
 	CreatedAt   time.Time   `json:"created_at"`
@@ -34,7 +34,7 @@ type UserDTO struct {
 type UserWithCarsDTO struct {
 	TGUserID    int64       `json:"tg_user_id"`
 	Name        string      `json:"name"`
-	PhoneNumber string      `json:"phone_number"`
+	PhoneNumber *string     `json:"phone_number,omitempty"`
 	TGLink      *string     `json:"tg_link,omitempty"`
 	Role        domain.Role `json:"role"`
 	CreatedAt   time.Time   `json:"created_at"`

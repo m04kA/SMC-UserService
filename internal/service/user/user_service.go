@@ -69,7 +69,7 @@ func (s *Service) CreateUser(ctx context.Context, input models.CreateUserInputDT
 	return response, nil
 }
 
-// UpdateUser обновляет данные пользователя
+// UpdateUser обновляет данные пользователя (частичное обновление)
 func (s *Service) UpdateUser(ctx context.Context, tgID int64, input models.UpdateUserInputDTO) (*models.UserDTO, error) {
 	user, err := s.userRepo.GetByTGID(ctx, tgID)
 	if err != nil {
@@ -79,9 +79,16 @@ func (s *Service) UpdateUser(ctx context.Context, tgID int64, input models.Updat
 		return nil, fmt.Errorf("%w: %v", ErrServiceGetUser, err)
 	}
 
-	user.Name = input.Name
-	user.PhoneNumber = input.PhoneNumber
-	user.TGLink = input.TGLink
+	// Обновляем только те поля, которые переданы
+	if input.Name != nil {
+		user.Name = *input.Name
+	}
+	if input.PhoneNumber != nil {
+		user.PhoneNumber = input.PhoneNumber
+	}
+	if input.TGLink != nil {
+		user.TGLink = input.TGLink
+	}
 
 	if err = s.userRepo.Update(ctx, user); err != nil {
 		return nil, fmt.Errorf("%w: %v", ErrServiceUpdateUser, err)

@@ -59,6 +59,9 @@ make migrate-down
 
 # Полный сброс БД
 make db-reset
+
+# Загрузить тестовые фикстуры (11 пользователей, 7 автомобилей)
+make fixtures
 ```
 
 ### Cleanup Commands
@@ -95,7 +98,7 @@ make clean-all
 1. **Domain Layer** (`internal/domain/`)
    - `user.go` - доменная модель User с db тегами для sqlx
      - Поля: TGUserID, Name, PhoneNumber, TGLink, RoleID, Role, CreatedAt
-     - TGLink и все nullable поля используют указатели
+     - PhoneNumber, TGLink и все nullable поля используют указатели
    - `car.go` - доменная модель Car с db тегами для sqlx
      - Car.ID использует int64 (BIGSERIAL в БД)
      - IsSelected (bool) - флаг выбранного автомобиля
@@ -118,6 +121,7 @@ make clean-all
      - ErrUserNotFound, ErrUserAlreadyExists, ErrCarNotFound, ErrCarAccessDenied
    - `models/models.go` - все DTO модели (User, Car, UserWithCars)
      - DTOs включают поле role
+     - PhoneNumber является необязательным полем (*string) во всех DTO
 
 3. **Infrastructure Layer** (`internal/infra/storage/`)
    - `user/repository.go` - UserRepository с обработкой ошибок
@@ -205,7 +209,7 @@ Dashboard "SMC UserService - HTTP Metrics" включает:
 
 - **users table**:
   - tg_user_id BIGINT PRIMARY KEY
-  - name, phone_number, tg_link, created_at
+  - name (required), phone_number (nullable), tg_link (nullable), created_at
   - role_id INTEGER FK → roles(id) ON DELETE RESTRICT
   - Index на phone_number
   - Index на role_id
@@ -231,7 +235,7 @@ Dashboard "SMC UserService - HTTP Metrics" включает:
 API реализует OpenAPI спецификацию из `schemas/api/schema.yaml`:
 
 ### Public Endpoints
-- `POST /users` - создание пользователя (с указанием роли)
+- `POST /users` - создание пользователя (с указанием роли, phone_number опционально)
 
 ### Internal Endpoints (для межсервисного взаимодействия)
 - `GET /internal/users/{tg_user_id}` - получение пользователя с автомобилями по ID
@@ -239,7 +243,7 @@ API реализует OpenAPI спецификацию из `schemas/api/schema
 
 ### Protected Endpoints (требуют X-User-ID и X-User-Role)
 - `GET /users/me` - получение пользователя с автомобилями (включает is_selected для каждого автомобиля)
-- `PUT /users/me` - обновление профиля
+- `PUT /users/me` - частичное обновление профиля (обновляются только переданные поля)
 - `DELETE /users/me` - удаление профиля
 - `POST /users/me/cars` - добавление автомобиля (первый автомобиль автоматически становится выбранным)
 - `PATCH /users/me/cars/{car_id}` - частичное обновление автомобиля

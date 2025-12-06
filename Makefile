@@ -1,4 +1,4 @@
-.PHONY: help build run test clean clean-all docker-build docker-up docker-down docker-restart docker-logs docker-clean docker-prune migrate-up migrate-down db-reset
+.PHONY: help build run test clean clean-all docker-build docker-up docker-down docker-restart docker-logs docker-clean docker-prune migrate-up migrate-down db-reset fixtures
 
 # Variables
 APP_NAME=smc-userservice
@@ -28,6 +28,7 @@ help:
 	@echo "  make migrate-up     - Apply database migrations"
 	@echo "  make migrate-down   - Rollback database migrations"
 	@echo "  make db-reset       - Reset database (down volumes + up)"
+	@echo "  make fixtures       - Load test fixtures into database"
 
 # Build commands
 build:
@@ -115,6 +116,19 @@ db-reset:
 	@sleep 5
 	@$(DOCKER_COMPOSE) up migrate
 	@echo "Database reset complete"
+
+fixtures:
+	@echo "Loading test fixtures into database..."
+	@$(DOCKER_COMPOSE) up -d postgres
+	@sleep 2
+	@docker exec -i smc-userservice-db psql -U postgres -d smc_userservice < migrations/fixtures/001_test_users.sql
+	@echo "Fixtures loaded successfully"
+	@echo ""
+	@echo "Loaded data:"
+	@echo "  - 11 users (7 clients, 3 managers, 1 without car)"
+	@echo "  - 7 cars with selected flags"
+	@echo ""
+	@echo "Verify with: docker exec -it smc-userservice-db psql -U postgres -d smc_userservice -c 'SELECT COUNT(*) FROM users;'"
 
 # Development helpers
 dev:

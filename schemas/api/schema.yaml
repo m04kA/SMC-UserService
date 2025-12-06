@@ -99,6 +99,7 @@ paths:
     post:
       tags: [Users]
       summary: "Создание нового пользователя"
+      description: "Создаёт нового пользователя. Номер телефона является опциональным полем."
       requestBody:
         required: true
         content:
@@ -142,7 +143,8 @@ paths:
 
     put:
       tags: [Users]
-      summary: "Полное обновление профиля текущего пользователя"
+      summary: "Частичное обновление профиля текущего пользователя"
+      description: "Обновляет только переданные поля. Непереданные поля остаются без изменений."
       security:
         - UserIdAuth: []
         - UserRoleAuth: []
@@ -351,6 +353,7 @@ components:
           example: "Иван"
         phone_number:
           type: string
+          nullable: true
           description: "Номер телефона в формате E.164."
           example: "+79991234567"
         tg_link:
@@ -423,7 +426,6 @@ components:
       required:
         - tg_user_id
         - name
-        - phone_number
         - role
       properties:
         tg_user_id:
@@ -435,6 +437,8 @@ components:
           example: "Иван"
         phone_number:
           type: string
+          nullable: true
+          description: "Номер телефона в формате E.164. Опционально."
           example: "+79991234567"
         tg_link:
           type: string
@@ -448,19 +452,22 @@ components:
 
     UpdateUserInput:
       type: object
-      required:
-        - name
-        - phone_number
+      description: "Модель для частичного обновления пользователя. Все поля опциональны. Обновляются только переданные поля."
       properties:
         name:
           type: string
+          nullable: true
+          description: "Имя пользователя. Опционально."
           example: "Иван Петров"
         phone_number:
           type: string
+          nullable: true
+          description: "Номер телефона в формате E.164. Опционально."
           example: "+79001112233"
         tg_link:
           type: string
           nullable: true
+          description: "Ссылка на профиль в Telegram. Опционально."
           example: "@new_m0sHe4kA"
 
     NewCarInput:
