@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -35,33 +34,37 @@ import (
 )
 
 func main() {
-	// Инициализируем логгер
-	if err := logger.Init("./logs/app.log"); err != nil {
-		log.Fatalf("Failed to initialize logger: %v", err)
-	}
-	defer logger.Close()
-
-	logger.Info("Starting SMC-UserService...")
-
 	// Загружаем конфигурацию
 	cfg, err := config.Load("./config.toml")
 	if err != nil {
-		logger.Fatal("Failed to load config: %v", err)
+		fmt.Printf("Failed to load config: %v\n", err)
+		os.Exit(1)
 	}
-	logger.Info("Configuration loaded successfully")
+
+	// Инициализируем логгер
+	log, err := logger.New("./logs/app.log", cfg.Logs.Level)
+	if err != nil {
+		fmt.Printf("Failed to initialize logger: %v\n", err)
+		os.Exit(1)
+	}
+	defer log.Close()
+
+	log.Info("Starting SMC-UserService...")
+	log.Info("Configuration loaded from config.toml")
 
 	// Подключаемся к базе данных
 	db, err := sqlx.Connect("postgres", cfg.Database.DSN())
 	if err != nil {
-		logger.Fatal("Failed to connect to database: %v", err)
+		log.Fatal("Failed to connect to database: %v", err)
 	}
 	defer db.Close()
 
 	// Проверяем соединение
 	if err := db.Ping(); err != nil {
-		logger.Fatal("Failed to ping database: %v", err)
+		log.Fatal("Failed to ping database: %v", err)
 	}
-	logger.Info("Successfully connected to database")
+	log.Info("Successfully connected to database (host=%s, port=%d, db=%s)",
+		cfg.Database.Host, cfg.Database.Port, cfg.Database.DBName)
 
 	// Инициализируем репозитории
 	userRepo := userrepo.NewRepository(db)
@@ -71,17 +74,17 @@ func main() {
 	service := userservice.NewUserService(userRepo, carRepo)
 
 	// Инициализируем handlers
-	createUserHandler := create_user.NewHandler(service)
-	getCurrentUserHandler := get_current_user.NewHandler(service)
-	updateCurrentUserHandler := update_current_user.NewHandler(service)
-	deleteCurrentUserHandler := delete_current_user.NewHandler(service)
-	createCarHandler := create_car.NewHandler(service)
-	updateCarHandler := update_car.NewHandler(service)
-	deleteCarHandler := delete_car.NewHandler(service)
-	getSelectedCarHandler := get_selected_car.NewHandler(service)
-	selectCarHandler := select_car.NewHandler(service)
-	getUserByIDHandler := get_user_by_id.NewHandler(service)
-	getSuperUsersHandler := get_superusers.NewHandler(service)
+	createUserHandler := create_user.NewHandler(service, log)
+	getCurrentUserHandler := get_current_user.NewHandler(service, log)
+	updateCurrentUserHandler := update_current_user.NewHandler(service, log)
+	deleteCurrentUserHandler := delete_current_user.NewHandler(service, log)
+	createCarHandler := create_car.NewHandler(service, log)
+	updateCarHandler := update_car.NewHandler(service, log)
+	deleteCarHandler := delete_car.NewHandler(service, log)
+	getSelectedCarHandler := get_selected_car.NewHandler(service, log)
+	selectCarHandler := select_car.NewHandler(service, log)
+	getUserByIDHandler := get_user_by_id.NewHandler(service, log)
+	getSuperUsersHandler := get_superusers.NewHandler(service, log)
 
 	// Настраиваем роутер
 	r := mux.NewRouter()
@@ -125,9 +128,9 @@ func main() {
 
 	// Graceful shutdown
 	go func() {
-		logger.Info("Starting server on %s", addr)
+		log.Info("Starting server on %s", addr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			logger.Fatal("Server failed to start: %v", err)
+			log.Fatal("Server failed to start: %v", err)
 		}
 	}()
 
@@ -136,14 +139,14 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	logger.Info("Shutting down server...")
+	log.Info("Shutting down server...")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
-		logger.Error("Server forced to shutdown: %v", err)
+		log.Error("Server forced to shutdown: %v", err)
 	}
 
-	logger.Info("Server stopped gracefully")
+	log.Info("Server stopped gracefully")
 }
