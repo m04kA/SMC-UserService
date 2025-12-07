@@ -23,10 +23,29 @@ info:
     - **superuser** - администратор системы (полный доступ ко всем данным)
   version: "1.0.0"
 servers:
-  - url: https://api.carwash.app/v1
+  - url: http://localhost:8080/
     description: Production Server
 
 paths:
+  /internal/users/superusers:
+    get:
+      tags: [Internal]
+      summary: "Получение списка всех суперпользователей (межсервисное взаимодействие)"
+      description: "Endpoint для получения списка Telegram user ID всех пользователей с ролью superuser."
+      responses:
+        '200':
+          description: "Успешный ответ со списком ID суперпользователей."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuperUsersResponse'
+        '500':
+          description: "Внутренняя ошибка сервера."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /internal/users/{tg_user_id}:
     get:
       tags: [Internal]
@@ -419,6 +438,17 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Car'
+
+    SuperUsersResponse:
+      type: object
+      properties:
+        super_user_ids:
+          type: array
+          items:
+            type: integer
+            format: int64
+          description: "Список Telegram user ID всех суперпользователей."
+          example: [123456789, 987654321]
 
     # --- МОДЕЛИ ДЛЯ ТЕЛА ЗАПРОСА (INPUT) ---
     NewUserInput:

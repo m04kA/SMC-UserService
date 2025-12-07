@@ -20,6 +20,7 @@ type UserRepository interface {
 	GetByTGID(ctx context.Context, tgID int64) (*domain.User, error)
 	Update(ctx context.Context, user *domain.User) error
 	Delete(ctx context.Context, tgID int64) error
+	GetSuperUsers(ctx context.Context) ([]int64, error)
 }
 
 // CarRepository определяет контракт для работы с хранилищем автомобилей.

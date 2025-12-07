@@ -4,9 +4,16 @@ package domain
 type Role string
 
 const (
-	RoleClient     Role = "client"     // Обычный клиент автомойки
-	RoleManager    Role = "manager"    // Менеджер компании (автомойки)
-	RoleSuperUser  Role = "superuser"  // Суперпользователь с полным доступом
+	RoleClient     Role = "client"     // Обычный клиент автомойки (ID=1)
+	RoleManager    Role = "manager"    // Менеджер компании (автомойки) (ID=2)
+	RoleSuperUser  Role = "superuser"  // Суперпользователь с полным доступом (ID=3)
+)
+
+// RoleID константы для идентификаторов ролей в базе данных
+const (
+	RoleIDClient    int = 1
+	RoleIDManager   int = 2
+	RoleIDSuperUser int = 3
 )
 
 // IsValid проверяет, является ли роль валидной

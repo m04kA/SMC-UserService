@@ -182,17 +182,26 @@ func (s *Service) GetUserWithCars(ctx context.Context, tgID int64) (*models.User
 	return response, nil
 }
 
+// GetSuperUsers возвращает список tg_user_id всех суперпользователей
+func (s *Service) GetSuperUsers(ctx context.Context) ([]int64, error) {
+	userIDs, err := s.userRepo.GetSuperUsers(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrServiceGetUser, err)
+	}
+	return userIDs, nil
+}
+
 // roleToID маппит роль в ID для БД
 func roleToID(role domain.Role) int {
 	switch role {
 	case domain.RoleClient:
-		return 1
+		return domain.RoleIDClient
 	case domain.RoleManager:
-		return 2
+		return domain.RoleIDManager
 	case domain.RoleSuperUser:
-		return 3
+		return domain.RoleIDSuperUser
 	default:
-		return 1 // default client
+		return domain.RoleIDClient // default client
 	}
 }
 

@@ -22,6 +22,7 @@ import (
 	"github.com/m04kA/SMC-UserService/internal/handlers/api/delete_current_user"
 	"github.com/m04kA/SMC-UserService/internal/handlers/api/get_current_user"
 	"github.com/m04kA/SMC-UserService/internal/handlers/api/get_selected_car"
+	"github.com/m04kA/SMC-UserService/internal/handlers/api/get_superusers"
 	"github.com/m04kA/SMC-UserService/internal/handlers/api/get_user_by_id"
 	"github.com/m04kA/SMC-UserService/internal/handlers/api/select_car"
 	"github.com/m04kA/SMC-UserService/internal/handlers/api/update_car"
@@ -80,6 +81,7 @@ func main() {
 	getSelectedCarHandler := get_selected_car.NewHandler(service)
 	selectCarHandler := select_car.NewHandler(service)
 	getUserByIDHandler := get_user_by_id.NewHandler(service)
+	getSuperUsersHandler := get_superusers.NewHandler(service)
 
 	// Настраиваем роутер
 	r := mux.NewRouter()
@@ -94,6 +96,7 @@ func main() {
 	r.HandleFunc("/users", createUserHandler.Handle).Methods(http.MethodPost)
 
 	// Internal routes (для межсервисного взаимодействия)
+	r.HandleFunc("/internal/users/superusers", getSuperUsersHandler.Handle).Methods(http.MethodGet)
 	r.HandleFunc("/internal/users/{tg_user_id}", getUserByIDHandler.Handle).Methods(http.MethodGet)
 	r.HandleFunc("/internal/users/{tg_user_id}/cars/selected", getSelectedCarHandler.Handle).Methods(http.MethodGet)
 

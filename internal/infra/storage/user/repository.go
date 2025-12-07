@@ -14,11 +14,12 @@ import (
 )
 
 var (
-	ErrCreateUser  = errors.New("failed to create user in database")
-	ErrGetUser     = errors.New("failed to get user from database")
-	ErrUpdateUser  = errors.New("failed to update user in database")
-	ErrDeleteUser  = errors.New("failed to delete user from database")
-	ErrBuildQuery  = errors.New("failed to build SQL query")
+	ErrCreateUser      = errors.New("failed to create user in database")
+	ErrGetUser         = errors.New("failed to get user from database")
+	ErrUpdateUser      = errors.New("failed to update user in database")
+	ErrDeleteUser      = errors.New("failed to delete user from database")
+	ErrGetSuperUsers   = errors.New("failed to get super users from database")
+	ErrBuildQuery      = errors.New("failed to build SQL query")
 )
 
 type Repository struct {
@@ -133,4 +134,23 @@ func (r *Repository) Delete(ctx context.Context, tgID int64) error {
 	}
 
 	return nil
+}
+
+// GetSuperUsers возвращает список tg_user_id всех суперпользователей
+func (r *Repository) GetSuperUsers(ctx context.Context) ([]int64, error) {
+	query, args, err := psqlbuilder.Select("u.tg_user_id").
+		From("users u").
+		Where(squirrel.Eq{"u.role_id": domain.RoleIDSuperUser}).
+		ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrBuildQuery, err)
+	}
+
+	var userIDs []int64
+	err = r.db.SelectContext(ctx, &userIDs, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %v", ErrGetSuperUsers, err)
+	}
+
+	return userIDs, nil
 }

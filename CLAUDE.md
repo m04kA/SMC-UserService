@@ -104,11 +104,12 @@ make clean-all
      - IsSelected (bool) - флаг выбранного автомобиля
    - `role.go` - ролевая модель и проверки прав доступа
      - Роли: client, manager, superuser
+     - Константы RoleID: RoleIDClient (1), RoleIDManager (2), RoleIDSuperUser (3)
      - Методы: CanAccessUser(), CanModifyUser()
 
 2. **Service Layer** (`internal/service/user/`)
    - `user_service.go` - полная бизнес-логика для User и Car
-     - User: CreateUser, UpdateUser, DeleteUser, GetUserByID, GetUserWithCars
+     - User: CreateUser, UpdateUser, DeleteUser, GetUserByID, GetUserWithCars, GetSuperUsers
      - Car: CreateCar, UpdateCar (PATCH + role), DeleteCar (role), GetSelectedCar, SetSelectedCar
      - Логика выбранного автомобиля:
        - Первый созданный автомобиль автоматически становится выбранным
@@ -127,6 +128,7 @@ make clean-all
    - `user/repository.go` - UserRepository с обработкой ошибок
      - JOIN с таблицей roles для получения имени роли
      - Create/GetByTGID/Update/Delete с поддержкой role_id
+     - GetSuperUsers - получение списка tg_user_id всех суперпользователей
    - `car/repository.go` - CarRepository с обработкой ошибок
      - GetSelectedByUserID - получение выбранного автомобиля
      - UnselectAllByUserID - снятие выбора со всех автомобилей пользователя
@@ -145,6 +147,7 @@ make clean-all
    - `api/select_car/handler.go` - PUT /users/me/cars/{car_id}/select (установка автомобиля как выбранного)
    - `api/get_user_by_id/handler.go` - GET /internal/users/{tg_user_id} (межсервисное взаимодействие)
    - `api/get_selected_car/handler.go` - GET /internal/users/{tg_user_id}/cars/selected (межсервисное взаимодействие, получение выбранного автомобиля по user_id)
+   - `api/get_superusers/handler.go` - GET /internal/users/superusers (межсервисное взаимодействие, получение списка всех суперпользователей)
    - `middleware/auth.go` - упрощённая аутентификация через X-User-ID и X-User-Role
      - Функции: UserIDAuth, GetUserIDFromContext, GetRoleFromContext, RequireSuperUser
    - `middleware/metrics.go` - Prometheus метрики middleware
@@ -238,6 +241,7 @@ API реализует OpenAPI спецификацию из `schemas/api/schema
 - `POST /users` - создание пользователя (с указанием роли, phone_number опционально)
 
 ### Internal Endpoints (для межсервисного взаимодействия)
+- `GET /internal/users/superusers` - получение списка tg_user_id всех суперпользователей
 - `GET /internal/users/{tg_user_id}` - получение пользователя с автомобилями по ID
 - `GET /internal/users/{tg_user_id}/cars/selected` - получение текущего выбранного автомобиля пользователя по его ID
 
