@@ -5,10 +5,12 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: smc-userservice-db
+    env_file:
+      - .env
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: smc_userservice
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     ports:
       - "5435:5432"
     volumes:
@@ -16,7 +18,7 @@ services:
     networks:
       - smc-userservice-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -24,6 +26,8 @@ services:
   migrate:
     image: migrate/migrate
     container_name: smc-userservice-migrate
+    env_file:
+      - .env
     depends_on:
       postgres:
         condition: service_healthy
@@ -33,7 +37,7 @@ services:
       - smc-userservice-network
     command: [
       "-path", "/migrations",
-      "-database", "postgres://postgres:postgres@postgres:5432/smc_userservice?sslmode=disable",
+      "-database", "postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=${DB_SSLMODE}",
       "up"
     ]
     restart: on-failure
@@ -43,16 +47,22 @@ services:
       context: .
       dockerfile: Dockerfile.userService
     container_name: smc-userservice-app
+    env_file:
+      - .env
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_SSLMODE: ${DB_SSLMODE}
+      HTTP_PORT: ${HTTP_PORT}
+      LOG_LEVEL: ${LOG_LEVEL}
+      LOG_FILE: ${LOG_FILE}
     ports:
       - "8080:8080"
-    environment:
-      - DATABASE_HOST=postgres
-      - DATABASE_PORT=5432
-      - DATABASE_USER=postgres
-      - DATABASE_PASSWORD=postgres
-      - DATABASE_NAME=smc_userservice
     volumes:
-      - ./logs:/root/logs
+      - ./logs:/app/logs
     depends_on:
       postgres:
         condition: service_healthy

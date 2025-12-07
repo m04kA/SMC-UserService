@@ -25,6 +25,9 @@ docker/
 logs/
 *.log
 
+# Environment
+.env
+
 # OS
 .DS_Store
 
